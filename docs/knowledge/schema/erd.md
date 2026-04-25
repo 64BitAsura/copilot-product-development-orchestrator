@@ -1,0 +1,140 @@
+# Entity Relationship Diagram
+
+> Generated from `base-schema.sql`. Update whenever the schema changes.
+> Rendered with [Mermaid](https://mermaid.js.org/syntax/entityRelationshipDiagram.html).
+
+---
+
+```mermaid
+erDiagram
+
+    inputs {
+        uuid        id              PK
+        input_type  type
+        text        title
+        text        raw_content
+        text        source_url
+        integer     issue_number
+        text        repository
+        timestamptz created_at
+    }
+
+    reference_inputs {
+        uuid                    id          PK
+        uuid                    input_id    FK
+        reference_input_type    type
+        text                    source
+        text                    summary
+        timestamptz             fetched_at
+        timestamptz             created_at
+    }
+
+    sessions {
+        uuid            id          PK
+        text            repository
+        text            created_by
+        session_status  status
+        timestamptz     created_at
+        timestamptz     updated_at
+    }
+
+    pipeline_runs {
+        uuid                    id                              PK
+        uuid                    session_id                      FK
+        uuid                    input_id                        FK
+        stage_type              current_stage
+        pipeline_run_status     status
+        text                    selected_requirements_option
+        text                    selected_design_option
+        text                    selected_planning_option
+        integer                 security_loop_count
+        text                    state_file_path
+        timestamptz             started_at
+        timestamptz             completed_at
+    }
+
+    stages {
+        uuid            id                  PK
+        uuid            pipeline_run_id     FK
+        stage_type      type
+        text            agent_name
+        stage_status    status
+        text            output_file_path
+        integer         iteration_count
+        timestamptz     started_at
+        timestamptz     completed_at
+        timestamptz     approved_at
+        text            approved_by
+    }
+
+    stage_outputs {
+        uuid        id          PK
+        uuid        stage_id    FK
+        integer     iteration
+        text        content
+        text        file_path
+        timestamptz created_at
+    }
+
+    agent_profiles {
+        uuid        id          PK
+        text        name
+        text        file_path
+        text        description
+        text_array  tools
+        text        git_sha
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    knowledge_documents {
+        uuid                            id              PK
+        knowledge_document_category     category
+        text                            name
+        text                            file_path
+        text                            description
+        timestamptz                     last_updated_at
+        text                            last_updated_by
+    }
+
+    user_approvals {
+        uuid                id                  PK
+        uuid                pipeline_run_id     FK
+        uuid                stage_id            FK
+        text                decided_by
+        approval_decision   decision
+        text                revision_notes
+        timestamptz         decided_at
+    }
+
+    %% Relationships
+    inputs              ||--o{    reference_inputs    : "has many"
+    sessions            ||--o{    pipeline_runs       : "contains"
+    inputs              ||--o{    pipeline_runs       : "processed by"
+    pipeline_runs       ||--o{    stages              : "has many"
+    stages              ||--o{    stage_outputs       : "produces"
+    pipeline_runs       ||--o{    user_approvals      : "records"
+    stages              ||--o{    user_approvals      : "approved via"
+```
+
+---
+
+## Relationship Cardinalities
+
+| From | Relationship | To | Description |
+|------|-------------|-----|-------------|
+| `inputs` | one-to-many | `reference_inputs` | One input can have 0–N reference materials |
+| `sessions` | one-to-many | `pipeline_runs` | A session holds all runs for a product context |
+| `inputs` | one-to-many | `pipeline_runs` | An input can be re-processed (e.g., after revision) |
+| `pipeline_runs` | one-to-many | `stages` | Each run executes up to 7 stages |
+| `stages` | one-to-many | `stage_outputs` | A stage can produce multiple outputs (one per retry) |
+| `pipeline_runs` | one-to-many | `user_approvals` | Each approval checkpoint is logged |
+| `stages` | one-to-many | `user_approvals` | Each stage may be approved multiple times (revision cycle) |
+
+---
+
+## Notes
+
+- `agent_profiles` and `knowledge_documents` are **reference tables** — they are seeded at deploy time and updated as agents or knowledge files are added. They are not linked via foreign keys to other tables to keep them loosely coupled.
+- All tables use `UUID` primary keys generated by `gen_random_uuid()` to prevent enumeration attacks.
+- The `stage_outputs.content` field stores the full markdown text; `file_path` points to the in-repo copy. Both are kept in sync by the writing agent.
