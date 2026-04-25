@@ -109,6 +109,114 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 ---
 
+## Agent Knowledge Requirements
+
+Each agent reads specific files from `docs/knowledge/` on every pipeline run. The table below shows which files each agent depends on and why.
+
+### Requirements Agent
+| File | Why |
+|------|-----|
+| `product-vision.md` | Understand purpose, users, and success metrics |
+| `key-features.md` | Know what already exists to avoid duplicates |
+| `requirements/personas.md` | Identify which users are affected |
+| `requirements/gap-analysis-checklist.md` | Structured checklist for finding missing info |
+| `requirements/requirement-template.md` | Output format to follow |
+| `requirements/acceptance-criteria-guide.md` | How to write acceptance criteria |
+| `requirements/approved-patterns.md` | Patterns already approved in past sessions |
+| `requirements/past-decisions.md` | Architectural/product decisions to stay consistent |
+| `blueprint/feature-map.md` | Existing feature landscape and dependencies |
+
+### Design Agent
+| File | Why |
+|------|-----|
+| `product-vision.md` | Align designs with product goals |
+| `key-features.md` | Design must cover all relevant features |
+| `design-principles.md` | UX/UI rules, accessibility, and brand guidelines |
+| `requirements/personas.md` | Design for the right users |
+| `blueprint/feature-map.md` | Understand how features relate |
+
+### Planning Agent
+| File | Why |
+|------|-----|
+| `product-vision.md` | Understand what is being built |
+| `key-features.md` | Know the feature surface |
+| `tech-stack.md` | Stay within the chosen technology choices |
+| `blueprint/feature-map.md` | Sequence work without breaking existing features |
+| `blueprint/domain-model.md` | Model entities and aggregates correctly |
+| `blueprint/integration-points.md` | Know what external services are involved |
+| `blueprint/capability-matrix.md` | Assign responsibilities to the right module/service |
+| `schema/base-schema.sql` | Understand the existing data model |
+| `schema/erd.md` | Visualise entity relationships |
+| `schema/schema-conventions.md` | Follow naming and design patterns |
+| `requirements/past-decisions.md` | Respect historical architectural decisions |
+
+### Security Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Know which libraries/frameworks to audit |
+| `security-best-practices.md` | Apply and extend the product's security rules |
+| `blueprint/integration-points.md` | Identify trust boundaries at external connections |
+| `blueprint/domain-model.md` | Find sensitive entities needing access control |
+| `schema/base-schema.sql` | Check for insecure schema patterns |
+
+### Coding Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Use the right languages, frameworks, and tooling |
+| `blueprint/domain-model.md` | Map code to domain entities correctly |
+| `blueprint/integration-points.md` | Implement integrations to the right external services |
+| `blueprint/capability-matrix.md` | Put code in the right module/service |
+| `schema/base-schema.sql` | Write queries/ORM models matching the real schema |
+| `schema/schema-conventions.md` | Follow naming and design conventions |
+| `schema/migrations-guide.md` | Write proper migrations when changing the schema |
+| `security-best-practices.md` | Implement secure patterns from the start |
+| `requirements/approved-patterns.md` | Reuse approved patterns instead of inventing new ones |
+
+### Tester Agent
+| File | Why |
+|------|-----|
+| `testing-guidelines.md` | Follow the project's test standards and coverage thresholds |
+| `tech-stack.md` | Use the correct test frameworks |
+| `blueprint/domain-model.md` | Write tests that reflect real business rules |
+| `schema/base-schema.sql` | Set up correct fixtures and seed data |
+| `requirements/acceptance-criteria-guide.md` | Derive test cases from acceptance criteria |
+
+### Documentation Agent
+| File | Why |
+|------|-----|
+| `product-vision.md` | Frame documentation in product context |
+| `key-features.md` | Document all relevant features |
+| `blueprint/integration-points.md` | Document external API contracts |
+| `requirements/past-decisions.md` | Note breaking changes relative to past decisions |
+| `tech-stack.md` | Reference correct tech in implementation notes |
+
+### Summary Matrix
+
+| Knowledge File | Req | Design | Plan | Sec | Code | Test | Docs |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `product-vision.md` | ✅ | ✅ | ✅ | | | | ✅ |
+| `key-features.md` | ✅ | ✅ | ✅ | | | | ✅ |
+| `design-principles.md` | | ✅ | | | | | |
+| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `security-best-practices.md` | | | | ✅ | ✅ | | |
+| `testing-guidelines.md` | | | | | | ✅ | |
+| `requirements/personas.md` | ✅ | ✅ | | | | | |
+| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | |
+| `requirements/requirement-template.md` | ✅ | | | | | | |
+| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | ✅ | |
+| `requirements/approved-patterns.md` | ✅ | | | | ✅ | | |
+| `requirements/past-decisions.md` | ✅ | | ✅ | | | | ✅ |
+| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | | | | |
+| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | |
+| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | | ✅ |
+| `blueprint/capability-matrix.md` | | | ✅ | | ✅ | | |
+| `schema/base-schema.sql` | | | ✅ | ✅ | ✅ | ✅ | |
+| `schema/erd.md` | | | ✅ | | | | |
+| `schema/schema-conventions.md` | | | ✅ | | ✅ | | |
+| `schema/migrations-guide.md` | | | | | ✅ | | |
+
+---
+
 ## Knowledge Harness
 
 `docs/knowledge/` is **your product's brain** — not documentation about this orchestrator. Fill it in with information about the product you are building. Agents read these files on every pipeline run to stay aligned with your product's purpose, existing features, design constraints, and technical decisions.
