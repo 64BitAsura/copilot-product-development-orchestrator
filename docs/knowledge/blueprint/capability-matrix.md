@@ -1,138 +1,64 @@
 # Capability Matrix
 
-> Maps every product capability to the agent responsible for it. Use this to answer: **"Which agent owns this?"**
+> **Fill this in.** Maps every product capability to the team, service, or module responsible for it. Used by the planning agent to understand ownership and avoid duplicating functionality. Helps coding agents know which existing module to extend versus when to create something new.
 
 ---
 
 ## How to Read This
 
-- **Owner**: The agent primarily responsible for this capability. Its output is the authoritative source.
-- **Contributor**: An agent that provides input to or reads from this capability.
-- **Consumer**: An agent that reads this output to do its own work.
+- **Owner**: The team, module, or service primarily responsible for this capability.
+- **Exposed via**: How the capability is accessed (API endpoint, library function, event, UI screen).
+- **Consumers**: Who or what calls or depends on this capability.
 
 ---
 
-## Capability → Agent Mapping
+## Capability Areas
 
-### Input & Initialization
+<!-- Replace these with YOUR product's capability areas. Common examples: Identity, Billing, Notifications, Content, Search, etc. -->
 
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Parse GitHub issue | Orchestrator | — | Requirements |
-| Parse free-form prompt | Orchestrator | — | Requirements |
-| Fetch URL references | Orchestrator | — | Requirements, Planning |
-| Read document references | Orchestrator | — | Requirements, Design |
-| Read repository references | Orchestrator | Planning | Coding |
-| Initialise pipeline state file | Orchestrator | — | All agents |
-| Manage stage transitions | Orchestrator | — | All agents |
-| User approval checkpoints | Orchestrator | — | — |
+### [Capability Area 1 — e.g., Identity & Access]
+
+| Capability | Owner | Exposed via | Consumers |
+|-----------|-------|------------|----------|
+| [e.g., User registration] | [e.g., auth-service] | [e.g., POST /api/auth/register] | [e.g., onboarding flow, mobile app] |
+| [e.g., Login / token issue] | [e.g., auth-service] | [e.g., POST /api/auth/login] | [e.g., all authenticated features] |
+| [e.g., Password reset] | [e.g., auth-service] | [e.g., POST /api/auth/reset-password] | [e.g., login screen] |
 
 ---
 
-### Requirements
+### [Capability Area 2 — e.g., Content Management]
 
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Load knowledge harness | Requirements | — | Requirements |
-| Gap analysis | Requirements | — | Orchestrator (pauses on gaps) |
-| Generate requirement options | Requirements | — | User, Orchestrator |
-| Write acceptance criteria | Requirements | — | Tester |
-| Update past decisions log | Requirements | — | Future sessions |
-| Update feature map (planned) | Requirements | — | All agents |
-| Frame requirements by persona | Requirements | — | Design, Planning |
+| Capability | Owner | Exposed via | Consumers |
+|-----------|-------|------------|----------|
+| [Capability] | [Owner] | [Exposed via] | [Consumers] |
 
 ---
 
-### Design
+### [Capability Area 3 — e.g., Notifications]
 
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Map UX flows | Design | — | Planning, Coding |
-| Inventory UI components | Design | — | Coding |
-| Set design budgets (UX/UI) | Design | — | Planning (must comply) |
-| Accessibility checklist | Design | — | Coding, Tester |
-| Generate wireframes / diagrams | Design | — | Planning, Coding |
-| Design system alignment | Design | Requirements | Coding |
+| Capability | Owner | Exposed via | Consumers |
+|-----------|-------|------------|----------|
+| [Capability] | [Owner] | [Exposed via] | [Consumers] |
 
 ---
 
-### Planning
+## Ownership Rules
 
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Analyse existing codebase | Planning | — | Planning |
-| Define implementation options | Planning | Design (budgets) | User, Orchestrator |
-| Specify data model changes | Planning | — | Coding, Schema |
-| Specify API changes | Planning | — | Coding, Documentation |
-| Sequence implementation steps | Planning | — | Coding |
-| Tech stack recommendation | Planning | — | Coding |
-| Security pre-analysis flags | Planning | — | Security |
-| Update tech stack document | Planning | — | Future sessions |
-
----
-
-### Security
-
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| OWASP Top 10 analysis | Security | Planning (flags) | Orchestrator |
-| CVE check on libraries | Security | Planning (lib list) | Orchestrator |
-| Trust boundary analysis | Security | blueprint/integration-points | Orchestrator |
-| Auth/authz gap detection | Security | Planning | Orchestrator |
-| Fix recommendations | Security | — | Planning (on loop), Coding |
-| Update security best practices | Security | — | Future sessions |
-
----
-
-### Coding
-
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Task decomposition from plan | Coding | — | Subagents |
-| Delegate to language subagents | Coding | — | — |
-| Verify subagent code quality | Coding | — | Tester |
-| API implementation | Coding | Planning (spec) | Tester, Documentation |
-| Persistence layer implementation | Coding | Planning (schema) | Tester |
-| UI implementation | Coding | Design (spec) | Tester |
-| Create PR / commit changes | Coding | — | Orchestrator |
-| Fix test failures (loop) | Coding | Tester (failures) | Tester |
-
----
-
-### Testing
-
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Generate test scenarios | Tester | Requirements (AC) | Tester |
-| Write unit tests | Tester | Developer subagents | Tester |
-| Write integration tests | Tester | Developer subagents | Tester |
-| Run tests + coverage report | Tester | — | Orchestrator, Documentation |
-| Enforce coverage threshold | Tester | — | Orchestrator |
-| Notify on test failure | Tester | — | Orchestrator → Coding |
-
----
-
-### Documentation
-
-| Capability | Owner | Contributors | Consumers |
-|-----------|-------|-------------|----------|
-| Update OpenAPI spec | Documentation | Coding (API changes) | — |
-| Write implementation notes | Documentation | Coding, Planning | — |
-| Detect breaking changes | Documentation | Planning (API spec diff) | Git commit message |
-| Generate changelog entry | Documentation | All stage outputs | — |
-| Update README for new features | Documentation | Requirements | — |
-
----
-
-## Agent Responsibility Boundaries
-
-**Hard rules — never cross these:**
+<!-- Hard rules that prevent two modules from owning the same thing. Add your own. -->
 
 | Rule | Rationale |
 |------|----------|
-| Only **Planning** defines the implementation approach | Prevents coding agent from making unchecked architecture decisions |
-| Only **Requirements** updates the knowledge harness requirements folder | Keeps requirements docs authoritative |
-| Only **Security** decides if an implementation is safe to build | Prevents planning or coding agents from self-approving security |
-| Only **Tester** writes tests | Prevents coding agent from writing tests that pass its own bugs |
-| Only **Documentation** updates API docs | Prevents coding agent from documenting what it wishes it had built |
-| **Orchestrator** is the only agent that transitions pipeline state | Prevents agents from autonomously skipping stages |
+| Only **[module/service]** writes to the `[entity]` table | Prevents split-brain on [entity] state |
+| Only **[module/service]** sends emails | Ensures consistent email formatting and rate limiting |
+| Only **[module/service]** handles payment processing | PCI compliance — payment data must not be scattered |
+| [Your rule] | [Your rationale] |
+
+---
+
+## Planned Capabilities (Not Yet Built)
+
+<!-- Capabilities that are on the roadmap but not yet implemented. Helps the planning agent avoid designing around missing infrastructure. -->
+
+| Capability | Target Area | Priority | Notes |
+|-----------|------------|---------|-------|
+| [Capability] | [Area] | High / Medium / Low | [Why it is not built yet] |

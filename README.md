@@ -59,15 +59,38 @@ GitHub Issue / Prompt
 
 ## Quick Start
 
-1. Open a GitHub issue describing the feature or change you want to build.
-2. Assign it to Copilot and select the **`orchestrator`** agent.
-3. The orchestrator will begin the pipeline, pause at approval checkpoints, and open a PR when done.
+> **This is a template repository.** Use it as the foundation for your product. The steps below explain how to set it up.
 
-Or start from the Copilot chat panel:
+### 1. Use this template
+
+Click **Use this template → Create a new repository** to create your own product repository from this template.
+
+### 2. Fill in the knowledge harness
+
+The `docs/knowledge/` folder is where you describe **your product**. Agents read these files to understand what they are building. Fill them in before running the pipeline for the first time:
+
+| File | What to put in it |
+|------|------------------|
+| `docs/knowledge/product-vision.md` | Your product's purpose, target users, problems solved, success metrics |
+| `docs/knowledge/key-features.md` | Every feature your product has or plans to have |
+| `docs/knowledge/requirements/personas.md` | The people who use your product |
+| `docs/knowledge/blueprint/feature-map.md` | Full feature inventory with IDs, statuses, and dependencies |
+| `docs/knowledge/blueprint/domain-model.md` | Your core entities, their relationships, and ubiquitous language |
+| `docs/knowledge/blueprint/integration-points.md` | All external services your product connects to |
+| `docs/knowledge/blueprint/capability-matrix.md` | Which module/service owns each product capability |
+| `docs/knowledge/schema/base-schema.sql` | Your PostgreSQL database schema (starter tables are provided) |
+
+The other files (`design-principles.md`, `tech-stack.md`, `security-best-practices.md`, `testing-guidelines.md`) contain sensible defaults — update them to match your stack.
+
+### 3. Run the pipeline
+
+Open a GitHub issue describing the feature or change you want to build, assign it to Copilot, and select the **`orchestrator`** agent:
 
 ```
 @orchestrator Build a user authentication feature. Reference: https://github.com/myorg/myapi
 ```
+
+The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 ---
 
@@ -88,41 +111,43 @@ Or start from the Copilot chat panel:
 
 ## Knowledge Harness
 
-Agents read from and write to the `docs/knowledge/` folder to stay aligned with the product:
+`docs/knowledge/` is **your product's brain** — not documentation about this orchestrator. Fill it in with information about the product you are building. Agents read these files on every pipeline run to stay aligned with your product's purpose, existing features, design constraints, and technical decisions.
 
 ```
 docs/knowledge/
-├── product-vision.md          # What we're building and why
-├── key-features.md            # Inventory of current features
-├── design-principles.md       # UX/UI design rules
-├── tech-stack.md              # Technology choices
-├── security-best-practices.md # Security patterns and findings log
-├── testing-guidelines.md      # Test standards and framework patterns
+├── product-vision.md          # ✏️ YOUR product's purpose, users, and success metrics
+├── key-features.md            # ✏️ YOUR product's feature inventory
+├── design-principles.md       # UX/UI rules (sensible defaults — update to match your product)
+├── tech-stack.md              # ✏️ YOUR technology choices
+├── security-best-practices.md # Security patterns (agents append findings here)
+├── testing-guidelines.md      # Test standards (agents append framework patterns here)
 │
 ├── requirements/              # Requirements agent's knowledge base
 │   ├── README.md
 │   ├── requirement-template.md
 │   ├── gap-analysis-checklist.md
 │   ├── acceptance-criteria-guide.md
-│   ├── personas.md
+│   ├── personas.md            # ✏️ YOUR product's user personas
 │   ├── approved-patterns.md
-│   └── past-decisions.md      # Append-only decision log
+│   └── past-decisions.md      # Append-only log — agents write here after each session
 │
-├── blueprint/                 # How all features tie together
+├── blueprint/                 # How YOUR product's features tie together
 │   ├── README.md
-│   ├── feature-map.md         # All features, statuses, dependencies
-│   ├── domain-model.md        # Entities, aggregates, ubiquitous language
-│   ├── integration-points.md  # Agent-to-agent + external integrations
-│   └── capability-matrix.md   # Which agent owns what
+│   ├── feature-map.md         # ✏️ YOUR features, statuses, dependencies
+│   ├── domain-model.md        # ✏️ YOUR entities, aggregates, ubiquitous language
+│   ├── integration-points.md  # ✏️ YOUR external service integrations
+│   └── capability-matrix.md   # ✏️ Which module/service owns each capability
 │
-└── schema/                    # Base database schema
+└── schema/                    # YOUR product's database schema
     ├── README.md
-    ├── base-schema.sql        # Full PostgreSQL schema
-    ├── erd.md                 # Mermaid Entity Relationship Diagram
+    ├── base-schema.sql        # ✏️ YOUR PostgreSQL schema (starter tables provided)
+    ├── erd.md                 # ✏️ YOUR Entity Relationship Diagram
     ├── schema-conventions.md  # Naming rules and design patterns
     ├── migrations-guide.md    # How to write and run migrations
-    └── migrations/            # Incremental migration files
+    └── migrations/            # Incremental migration files (one per schema change)
 ```
+
+> **✏️** = files you must fill in before running the pipeline for the first time.
 
 ---
 
@@ -141,18 +166,6 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── testing.md         # Tester agent report (coverage, failures)
 └── documentation.md   # Documentation agent report
 ```
-
----
-
-## Customising the Knowledge Harness
-
-Before running the pipeline for the first time, update these files to reflect your product:
-
-1. **`docs/knowledge/product-vision.md`** — replace placeholder content with your product's vision, users, and goals.
-2. **`docs/knowledge/key-features.md`** — list your existing features.
-3. **`docs/knowledge/tech-stack.md`** — fill in your actual technology choices.
-4. **`docs/knowledge/requirements/personas.md`** — describe your real users.
-5. **`docs/knowledge/schema/base-schema.sql`** — replace with your actual database schema.
 
 ---
 

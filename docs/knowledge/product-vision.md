@@ -1,113 +1,89 @@
 # Product Vision
 
-> **This is a living document.** Update it whenever the product direction shifts. The requirements agent reads this on every run to ensure all work aligns with the product's purpose.
+> **Fill this in.** The requirements agent reads this on every pipeline run to ensure all work aligns with your product's purpose. Keep it honest and up to date — vague vision produces vague requirements.
 
 ---
 
 ## What We Are Building
 
-**copilot-product-development-orchestrator** is an AI-powered software development pipeline that transforms a raw GitHub issue or feature request into a fully implemented, tested, and documented solution — with no manual handoffs between stages.
+<!-- Replace this section with a short paragraph describing your product.
+     Example: "[Product Name] is a [type of product] that helps [target users] to [core action] so that [outcome]." -->
 
-It is an orchestrator of specialized Copilot agents: each agent is an expert in its domain (requirements, design, architecture, security, coding, testing, documentation) and they collaborate in a defined sequence to deliver production-quality software.
+**[Product Name]** is a [type of product / platform / service] that [describe the core thing it does in one sentence].
 
 ---
 
 ## The Problem We Are Solving
 
-Modern software teams spend enormous energy on coordination overhead:
+<!-- List the 3–5 specific pains your product addresses. Be concrete — who feels this pain and when? -->
 
-- **Requirements are ambiguous** — engineers build the wrong thing.
-- **Design and engineering are siloed** — UX decisions are made too late or ignored.
-- **Security is an afterthought** — vulnerabilities are caught in production, not design.
-- **Testing is ad-hoc** — coverage is inconsistent and edge cases are missed.
-- **Documentation drifts** — APIs and implementations diverge from their docs.
-
-These problems compound in teams using AI coding tools: AI generates code fast, but without a structured process, it generates the *wrong* code fast.
+1. **[Problem 1]** — [Who experiences it and what does it cost them?]
+2. **[Problem 2]** — [Who experiences it and what does it cost them?]
+3. **[Problem 3]** — [Who experiences it and what does it cost them?]
 
 ---
 
 ## Our Solution
 
-A **multi-agent orchestration pipeline** where each specialized agent handles one stage of product development with deep domain expertise. The pipeline enforces quality gates, requires user approval at key decision points, and produces outputs that feed directly into the next stage.
+<!-- Describe how your product addresses the problems above. What does it do that alternatives do not? -->
 
-```
-Issue/Prompt → Requirements → Design → Planning → Security → Coding → Testing → Docs → PR
-```
+[Product Name] solves these problems by:
+
+- **[Capability 1]** — [how it addresses problem 1]
+- **[Capability 2]** — [how it addresses problem 2]
+- **[Capability 3]** — [how it addresses problem 3]
 
 ---
 
-## Who This Is For
+## Who We Are Building For
 
-### Primary Users
-- **Solo developers** using GitHub Copilot who want a structured development process without a team.
-- **Small engineering teams** (2–10 engineers) who need consistent quality gates without process overhead.
-- **Engineering leads** who want to delegate implementation while retaining control over requirements and architecture.
+<!-- Reference your personas from docs/knowledge/requirements/personas.md and summarise them here. -->
 
-### Secondary Users
-- **Product managers** who want to translate their GitHub issues into implemented features more reliably.
-- **Open-source maintainers** who want to ship contributions faster with consistent quality.
+| Persona | Description | Primary Goal |
+|---------|-------------|-------------|
+| [Persona 1] | [One sentence] | [What they most want to achieve] |
+| [Persona 2] | [One sentence] | [What they most want to achieve] |
+| [Persona 3] | [One sentence] | [What they most want to achieve] |
 
 ---
 
 ## Core Values
 
-| Value | What It Means in Practice |
-|-------|--------------------------|
-| **Transparency** | Every agent decision is logged. Users can inspect any stage's reasoning. |
-| **User control** | Users approve requirements, design, and architecture before any code is written. |
-| **Quality over speed** | The pipeline enforces security review and test coverage before completion. |
-| **Iterability** | Users can revise any stage and the downstream agents re-run accordingly. |
-| **Simplicity** | The pipeline should be simple to invoke: one issue, one command. |
+<!-- The principles that guide every product decision. When a trade-off arises, these values are the tiebreaker. -->
+
+1. **[Value 1]** — [What it means in practice]
+2. **[Value 2]** — [What it means in practice]
+3. **[Value 3]** — [What it means in practice]
 
 ---
 
-## Product Vision Statement
+## What Success Looks Like
 
-> Enable any engineer or product builder to go from idea to production-ready code — with the judgment of a full product development team — using only GitHub Copilot and a clear problem statement.
+<!-- Specific, measurable outcomes. These become the criteria by which requirements are evaluated. -->
 
----
-
-## Success Metrics
-
-| Metric | Target |
-|--------|--------|
-| Time from issue to PR (excluding user wait time) | < 30 min for M-sized features |
-| Requirements accuracy (user approval rate on first pass) | > 75% |
-| Security issues caught before coding | > 90% of flagged items addressed |
-| Test coverage on new code | ≥ 80% |
-| Documentation accuracy post-implementation | Zero known doc gaps |
+| Metric | Target | Timeframe |
+|--------|--------|-----------|
+| [Metric 1] | [Target value] | [e.g., "3 months post-launch"] |
+| [Metric 2] | [Target value] | [e.g., "End of year 1"] |
+| [Metric 3] | [Target value] | [e.g., "At launch"] |
 
 ---
 
-## Product Boundaries
+## Out of Scope (v1)
 
-### In Scope (v1)
-- GitHub Issues as primary input
-- Free-form text prompts as input
-- Reference inputs: URLs, docs (`.md`, `.txt`), repos
-- Pipeline stages: Requirements, Design, Planning, Security, Coding, Testing, Documentation
-- Single-repository implementations
-- REST API and standard web/backend patterns
+<!-- Explicitly list what this product does NOT do in its first version. Prevents scope creep and helps agents avoid over-engineering. -->
 
-### Out of Scope (v1)
-- E2E / browser-based testing (unit and integration tests only)
-- Multi-repository coordinated deployments
-- Production deployment automation
-- Mobile app code generation
-- Real-time collaboration between multiple users on the same session
-
-### Deferred (v2+)
-- Visual design rendering (Figma integration)
-- Real-time code collaboration
-- Custom agent marketplace
-- Automated rollback on failed deployments
+- [Thing that is explicitly not in v1]
+- [Thing that is explicitly not in v1]
+- [Thing that is explicitly not in v1]
 
 ---
 
-## Guiding Principles for Requirements
+## Product Principles for Agents
 
-1. **Every feature must be traceable to a user problem.** Features without a problem statement are not approved.
-2. **Scope creep is blocked at the requirements stage.** The requirements agent must explicitly call out and exclude scope creep.
-3. **Non-functional requirements are first-class.** Performance, security, and accessibility requirements are always captured.
-4. **Multiple options are always presented.** Users choose; agents implement.
-5. **The pipeline does not skip stages.** Even for trivial changes, all agents run (though their output may be brief).
+<!-- Rules agents must follow when evaluating trade-offs. Add your own. -->
+
+- **Simplicity first** — prefer the simpler solution unless there is a concrete reason not to.
+- **User trust is paramount** — never sacrifice user data privacy for convenience.
+- **Ship incrementally** — a working partial solution is better than a perfect incomplete one.
+- **[Your principle]** — [what it means]

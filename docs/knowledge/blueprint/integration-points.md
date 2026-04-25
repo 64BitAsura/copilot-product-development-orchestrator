@@ -1,196 +1,115 @@
 # Integration Points
 
-> Maps every boundary where components, agents, and external services connect. Any new integration that crosses a trust boundary must be added here. The security agent reads this to trace attack surfaces; the planning agent reads this to understand side-effects of changes.
+> **Fill this in.** Maps every boundary where your product's components and external services connect. The security agent reads this to identify attack surfaces; the planning agent reads this to understand the side-effects of changes. Any integration that crosses a trust boundary must be documented here.
 
 ---
 
-## Internal Integration Points (Agent-to-Agent)
+## How to Add an Integration
 
-### Orchestrator → Requirements Agent
+```markdown
+### [Your Service] → [External Service]
 
 | Attribute | Value |
 |-----------|-------|
-| Direction | Orchestrator invokes requirements-agent |
-| Mechanism | Copilot `agent` tool (`@requirements-agent`) |
-| Input passed | Main input text, reference input list, pipeline state path |
-| Output expected | `.copilot/pipeline/requirements.md` |
-| Failure behavior | Orchestrator surfaces error to user, pauses pipeline |
-| Auth | Copilot session (same permissions as orchestrator) |
-
----
-
-### Orchestrator → Design Agent
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Orchestrator invokes design-agent |
-| Mechanism | Copilot `agent` tool (`@design-agent`) |
-| Input passed | Path to `.copilot/pipeline/requirements.md`, reference inputs |
-| Output expected | `.copilot/pipeline/design.md` |
-| Failure behavior | Orchestrator surfaces error, user can retry |
-
----
-
-### Orchestrator → Planning Agent
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Orchestrator invokes planning-agent |
-| Mechanism | Copilot `agent` tool (`@planning-agent`) |
-| Input passed | Requirements path, design path, reference repo paths |
-| Output expected | `.copilot/pipeline/planning.md` |
-| Failure behavior | Orchestrator surfaces error, user can retry |
-
----
-
-### Orchestrator → Security Agent
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Orchestrator invokes security-agent |
-| Mechanism | Copilot `agent` tool (`@security-agent`) |
-| Input passed | Selected planning option from `.copilot/pipeline/planning.md` |
-| Output expected | `.copilot/pipeline/security.md` |
-| Loop behavior | If issues found → orchestrator reinvokes planning-agent with security feedback |
-| Max loops | 3 (after 3 loops, escalate to user) |
-
----
-
-### Orchestrator → Coding Agent
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Orchestrator invokes coding-agent |
-| Mechanism | Copilot `agent` tool (`@coding-agent`) |
-| Input passed | Planning path, design path, requirements path, security constraints |
-| Output expected | `.copilot/pipeline/coding.md` + actual code changes in repo |
-| Failure behavior | Surfaces blocker to user if coding agent cannot proceed |
-
----
-
-### Coding Agent → Developer Subagents
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Coding agent delegates to language-specific subagents |
-| Mechanism | Copilot `agent` tool (e.g. `@python-developer`, `@typescript-developer`) |
-| Input passed | Specific implementation task with context |
-| Output expected | Code written to repo |
-| Failure behavior | Coding agent retries with revised instructions (max 3 attempts) |
-
----
-
-### Tester Agent → Coding Agent (failure loop)
-
-| Attribute | Value |
-|-----------|-------|
-| Direction | Tester agent notifies orchestrator of test failures; orchestrator re-invokes coding agent |
-| Mechanism | Orchestrator mediates |
-| Input passed | Failed test output + test file paths |
-| Output expected | Fixed code; tester re-runs |
-| Max loops | 5 (after 5 loops, escalate to user) |
-
----
-
-## External Integration Points
-
-### GitHub API (via `github` MCP server)
-
-| Attribute | Value |
-|-----------|-------|
-| Used by | All agents |
-| Auth | Copilot session token scoped to the repository |
-| Capabilities used | Read issues, PRs, comments, wiki; read file contents; list repos |
-| Write capabilities | Create/update files, create PRs (coding agent via GitHub CLI) |
-| Trust boundary | GitHub.com — treated as trusted source for issue content |
-| Rate limits | Standard GitHub API rate limits apply |
-| Failure mode | Retry with exponential backoff; surface to user after 3 failures |
-
----
-
-### Web Search / Web Fetch (via `web` tool)
-
-| Attribute | Value |
-|-----------|-------|
-| Used by | Requirements agent, planning agent, security agent |
-| Auth | None (public web only) |
-| Capabilities | Fetch URL content, search for documentation, research libraries |
-| Trust boundary | **Untrusted** — content from web must never be executed; treated as read-only reference |
-| Security note | Never pass web-fetched content directly into code execution |
-| Failure mode | Log warning, continue without web content |
-
----
-
-### Playwright MCP Server (localhost only)
-
-| Attribute | Value |
-|-----------|-------|
-| Used by | Tester agent (for integration tests requiring browser) |
-| Scope | Localhost only — cannot access external URLs |
-| Auth | None |
-| Failure mode | Skip browser-based tests; log as limitation |
-
----
-
-### CLI / Shell (`execute` tool)
-
-| Attribute | Value |
-|-----------|-------|
-| Used by | Coding agent, tester agent |
-| Capabilities | Run build commands, test suites, linters, Docker |
-| Trust boundary | Commands must be deterministic and safe — no user-supplied shell injection |
-| Security note | Never interpolate untrusted input into shell commands |
-| Failure mode | Surface stderr to user with context |
-
----
-
-## Knowledge Harness Read/Write Map
-
-| Document | Read by | Written / Updated by |
-|----------|---------|---------------------|
-| `docs/knowledge/product-vision.md` | All agents | Human (manually) |
-| `docs/knowledge/requirements/*` | Requirements agent | Requirements agent (past-decisions, feature-map updates) |
-| `docs/knowledge/blueprint/feature-map.md` | All agents | Requirements agent (on approval), Planning agent (on completion) |
-| `docs/knowledge/blueprint/domain-model.md` | All agents | Planning agent (on schema changes) |
-| `docs/knowledge/blueprint/integration-points.md` | Planning agent, Security agent | Planning agent (on new integrations) |
-| `docs/knowledge/schema/*` | Planning agent, Coding agent | Planning agent (on data model changes) |
-| `docs/knowledge/design-principles.md` | Design agent, Requirements agent | Human (manually) |
-| `docs/knowledge/tech-stack.md` | Planning agent | Planning agent (after tech decisions) |
-| `docs/knowledge/security-best-practices.md` | Security agent | Security agent (after new findings) |
-| `docs/knowledge/testing-guidelines.md` | Tester agent | Tester agent (after new test patterns) |
-
----
-
-## Trust Boundary Summary
-
-```
-┌─────────────────────────────────┐
-│     TRUSTED ZONE                │
-│  - Copilot agents               │
-│  - Repository codebase          │
-│  - GitHub API (authenticated)   │
-│  - Pipeline state files         │
-│  - Knowledge harness docs       │
-└───────────────┬─────────────────┘
-                │ controlled access
-┌───────────────▼─────────────────┐
-│     SEMI-TRUSTED ZONE           │
-│  - GitHub Issues content        │
-│    (user-written, sanitized)    │
-│  - Referenced repositories      │
-│    (read-only)                  │
-└───────────────┬─────────────────┘
-                │ read-only, never executed
-┌───────────────▼─────────────────┐
-│     UNTRUSTED ZONE              │
-│  - Web search results           │
-│  - External URLs                │
-│  - User-provided prompts        │
-│    (validated before use)       │
-└─────────────────────────────────┘
+| Direction | [Which side initiates the connection] |
+| Protocol | [HTTP, WebSocket, gRPC, message queue, etc.] |
+| Auth mechanism | [API key, OAuth 2.0, mTLS, etc.] |
+| Data sent | [What data crosses this boundary] |
+| Data received | [What data comes back] |
+| Failure behavior | [What happens when this integration is unavailable] |
+| Rate limits | [Any known rate limits] |
+| Trust level | Trusted / Semi-trusted / Untrusted |
 ```
 
-**Rule**: Data from the untrusted zone is **read and summarized only**. It must never be:
+---
+
+## Internal Integrations (Service-to-Service)
+
+<!-- List how internal services/modules communicate with each other. -->
+
+### [Service A] → [Service B]
+
+| Attribute | Value |
+|-----------|-------|
+| Direction | [Service A] calls [Service B] |
+| Protocol | [e.g., HTTP REST] |
+| Auth mechanism | [e.g., internal service token] |
+| Data sent | [description] |
+| Data received | [description] |
+| Failure behavior | [e.g., return cached result, surface error to user] |
+| Trust level | Trusted |
+
+---
+
+## External Integrations (Third-Party Services)
+
+<!-- List every external service your product calls or receives calls from. -->
+
+### [Your Product] → [External Service e.g., Email Provider]
+
+| Attribute | Value |
+|-----------|-------|
+| Direction | Outbound |
+| Protocol | [e.g., HTTPS REST] |
+| Auth mechanism | [e.g., API key in header] |
+| Data sent | [e.g., recipient address, subject, HTML body] |
+| Data received | [e.g., message ID, delivery status] |
+| Failure behavior | [e.g., queue for retry, notify admin after 3 failures] |
+| Rate limits | [e.g., 100 emails/hour on free tier] |
+| Trust level | Semi-trusted |
+
+---
+
+### [External Service e.g., Payment Provider] → [Your Product]
+
+| Attribute | Value |
+|-----------|-------|
+| Direction | Inbound webhook |
+| Protocol | [e.g., HTTPS POST] |
+| Auth mechanism | [e.g., webhook signature verification] |
+| Data received | [e.g., payment status events] |
+| Validation | [e.g., verify HMAC-SHA256 signature before processing] |
+| Trust level | Semi-trusted — validate all payloads |
+
+---
+
+## Trust Boundary Map
+
+<!-- Define the trust zones for your product. Customize these based on your architecture. -->
+
+```
+┌──────────────────────────────────┐
+│         TRUSTED ZONE             │
+│  - Core application services     │
+│  - Internal databases            │
+│  - Background job workers        │
+└──────────────┬───────────────────┘
+               │ controlled access
+┌──────────────▼───────────────────┐
+│       SEMI-TRUSTED ZONE          │
+│  - Authenticated user requests   │
+│  - Verified partner webhooks     │
+│  - Internal admin tools          │
+└──────────────┬───────────────────┘
+               │ validate all input
+┌──────────────▼───────────────────┐
+│        UNTRUSTED ZONE            │
+│  - Public API requests           │
+│  - Third-party webhook payloads  │
+│  - User-uploaded content         │
+│  - Web search / scraped content  │
+└──────────────────────────────────┘
+```
+
+**Rule**: Data from the untrusted zone must be validated and sanitized before use. It must never be:
 - Executed as code
-- Passed directly into shell commands
-- Written to knowledge harness documents without agent review
+- Passed directly into database queries (use parameterised statements)
+- Rendered as HTML without sanitization
+
+---
+
+## Integration Inventory
+
+| Integration | Direction | Protocol | Trust Level | Status |
+|------------|----------|---------|------------|--------|
+| [Service] | Outbound | [Protocol] | [Level] | planned / live |

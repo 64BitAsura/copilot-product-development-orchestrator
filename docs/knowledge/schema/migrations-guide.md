@@ -154,20 +154,30 @@ COMMIT;
 
 ### Add an index
 
+> `CONCURRENTLY` avoids table locks on large tables but **cannot run inside a transaction block**. Omit `BEGIN`/`COMMIT` for these migrations.
+
+```sql
+-- FORWARD (no transaction — CONCURRENTLY is incompatible with explicit transactions)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_your_table_column
+    ON your_table (column_name DESC);
+
+-- ROLLBACK
+DROP INDEX CONCURRENTLY IF EXISTS idx_your_table_column;
+```
+
+For small tables or when downtime is acceptable, a regular (non-concurrent) index inside a transaction is simpler:
+
 ```sql
 -- FORWARD
 BEGIN;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inputs_repository_created
-    ON inputs (repository, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_your_table_column ON your_table (column_name);
 COMMIT;
 
 -- ROLLBACK
 BEGIN;
-DROP INDEX CONCURRENTLY IF EXISTS idx_inputs_repository_created;
+DROP INDEX IF EXISTS idx_your_table_column;
 COMMIT;
 ```
-
-> Use `CONCURRENTLY` for indexes on large tables to avoid locking. Note: `CONCURRENTLY` cannot run inside a transaction block — omit `BEGIN`/`COMMIT` for those migrations.
 
 ### Extend an enum
 
@@ -231,9 +241,9 @@ psql -d $DATABASE_URL -f docs/knowledge/schema/migrations/<filename>.sql
 
 ### CI (automated)
 ```bash
-# Run all unapplied migrations in order
-for f in $(ls docs/knowledge/schema/migrations/*.sql | sort); do
-    version=$(basename "$f" .sql | cut -d_ -f1,2)
+# Run all unapplied migrations in order (only YYYYMMDD_NNN_* files)
+for f in $(ls docs/knowledge/schema/migrations/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | sort); do
+    version=$(basename "$f" .sql | grep -oE '^[0-9]{8}_[0-9]+')
     applied=$(psql -d $DATABASE_URL -tAc "SELECT 1 FROM schema_migrations WHERE version='$version'")
     if [ -z "$applied" ]; then
         echo "Applying $f..."

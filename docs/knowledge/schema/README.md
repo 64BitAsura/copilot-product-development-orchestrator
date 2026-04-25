@@ -40,16 +40,15 @@ When the planning agent identifies a data model change, it must:
 
 ---
 
-## Quick Reference: Key Tables
+## Quick Reference: Starter Tables
+
+The initial `base-schema.sql` includes:
 
 | Table | Purpose |
 |-------|---------|
-| `inputs` | Raw inputs (issues, prompts) received by the orchestrator |
-| `reference_inputs` | Supplementary references attached to an input |
-| `sessions` | Long-lived product development contexts |
-| `pipeline_runs` | Single end-to-end pipeline execution |
-| `stages` | Individual agent execution within a pipeline run |
-| `stage_outputs` | Versioned output documents per stage |
-| `agent_profiles` | Registered custom agent definitions |
-| `knowledge_documents` | Inventory of knowledge harness documents |
-| `user_approvals` | Audit log of user approval decisions |
+| `schema_migrations` | Tracks applied migration versions |
+| `users` | People who have registered with your product |
+| `organizations` | Teams or accounts that group users and resources |
+| `organization_members` | Junction: which users belong to which organizations and in what role |
+
+Replace or extend these tables to match your product's domain model.
