@@ -104,7 +104,7 @@ Enforce:
 
 If tests fail:
 
-1. Analyse the failure — is it a test bug or an implementation bug?
+1. Analyze the failure — is it a test bug or an implementation bug?
 2. If it is a **test bug**: fix the test directly (or ask your subagent to fix it).
 3. If it is an **implementation bug**: notify the orchestrator with:
    - Which test failed
