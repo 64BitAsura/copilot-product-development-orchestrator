@@ -217,7 +217,7 @@ Invoke `back-tracker-agent` with:
 - Requirements (`.copilot/pipeline/requirements.md`)
 - Implementation report (`.copilot/pipeline/coding.md`)
 - E2E test results (`.copilot/pipeline/e2e-testing.md`)
-- Pipeline state and all other pipeline artefacts
+- Pipeline state and all other pipeline artifacts
 
 The back-tracker agent performs a final alignment check: comparing code changes AND E2E results against every acceptance criterion.
 

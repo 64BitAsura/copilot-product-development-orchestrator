@@ -292,7 +292,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | |
 | `schema/erd.md` | | | ✅ | | | | | | | | | | |
 | `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | |
-| `schema/migrations-guide.md` | | | | | | ✅ | | | | | |
+| `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | |
 
 ---
 
