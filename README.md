@@ -8,6 +8,11 @@
 
 This repository defines a **multi-agent product development pipeline** built on [GitHub Copilot custom agents](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents). Each agent is a specialist in one stage of software development. The orchestrator coordinates them in sequence.
 
+  Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
+  reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
+  the requirements → design → planning → performance → security → coding → linting → testing →
+  documentation → build → local-deployment agents.
+
 ```
 GitHub Issue / Prompt
         │
@@ -32,6 +37,11 @@ GitHub Issue / Prompt
 └────────┬────────┘
          │ option selected
          ▼
+┌─────────────────┐     medium/critical?
+│  Performance    │────────────► user (pause & select fix)
+└────────┬────────┘     minor → Planning (auto-adjust)
+         │ cleared
+         ▼
 ┌─────────────────┐     issues?
 │    Security     │────────────► Planning (auto-loop, max 3×)
 └────────┬────────┘
@@ -42,6 +52,11 @@ GitHub Issue / Prompt
 └────────┬────────┘
          │
          ▼
+┌─────────────────┐     unfixable issues?
+│    Linting      │────────────► Coding (auto-loop until clean)
+└────────┬────────┘
+         │ clean
+         ▼
 ┌─────────────────┐     failures?
 │     Testing     │────────────► Coding (auto-loop, max 5×)
 └────────┬────────┘
@@ -51,6 +66,16 @@ GitHub Issue / Prompt
 │  Documentation  │  (OpenAPI, changelog, impl notes)
 └────────┬────────┘
          │
+         ▼
+┌─────────────────┐     first run?
+│     Build       │────────────► user (approve strategy)
+└────────┬────────┘
+         │ artifacts ready
+         ▼
+┌─────────────────┐     first run?
+│ Local Deployment│────────────► user (approve strategy)
+└────────┬────────┘
+         │ all services healthy
          ▼
       Pull Request
 ```
@@ -102,10 +127,14 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | **Requirements** | `.github/agents/requirements-agent.agent.md` | Analyses inputs, detects gaps, produces options with confidence ratings |
 | **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility |
 | **Planning** | `.github/agents/planning-agent.agent.md` | Architecture, data model, API spec, implementation sequence |
+| **Performance** | `.github/agents/performance-agent.agent.md` | Vets the plan for compute/memory/network/DB/concurrency bottlenecks; escalates medium/critical issues to human |
 | **Security** | `.github/agents/security-agent.agent.md` | OWASP Top 10, CVE checks, trust boundaries, fix recommendations |
 | **Coding** | `.github/agents/coding-agent.agent.md` | Full-stack implementation via language-specific subagents |
+| **Linting** | `.github/agents/linting-agent.agent.md` | Runs project lint/format tools, auto-fixes issues, delegates unfixable violations to coding agent |
 | **Tester** | `.github/agents/tester-agent.agent.md` | Unit + integration tests, ≥80% coverage, failure loop with coding |
 | **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes |
+| **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval |
+| **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval |
 
 ---
 
@@ -190,30 +219,54 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `requirements/past-decisions.md` | Note breaking changes relative to past decisions |
 | `tech-stack.md` | Reference correct tech in implementation notes |
 
+### Performance Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Understand the runtime, frameworks, and their known performance characteristics |
+| `blueprint/integration-points.md` | Identify external calls that add network latency or introduce rate-limit ceilings |
+| `blueprint/domain-model.md` | Understand data volume, cardinality, and access patterns for DB bottleneck analysis |
+| `blueprint/feature-map.md` | Cross-check planned work against the existing feature backlog for compound load |
+
+### Linting Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Identify which languages and package managers are in use to discover the correct lint/format commands |
+
+### Build Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Determine languages, runtimes, and package managers to select the right build toolchain |
+
+### Local Deployment Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Understand the runtime stack to choose correct base images and emulators |
+| `blueprint/integration-points.md` | Identify every cloud service that needs a local emulator substitute |
+
 ### Summary Matrix
 
-| Knowledge File | Req | Design | Plan | Sec | Code | Test | Docs |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `product-vision.md` | ✅ | ✅ | ✅ | | | | ✅ |
-| `key-features.md` | ✅ | ✅ | ✅ | | | | ✅ |
-| `design-principles.md` | | ✅ | | | | | |
-| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `security-best-practices.md` | | | | ✅ | ✅ | | |
-| `testing-guidelines.md` | | | | | | ✅ | |
-| `requirements/personas.md` | ✅ | ✅ | | | | | |
-| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | |
-| `requirements/requirement-template.md` | ✅ | | | | | | |
-| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | ✅ | |
-| `requirements/approved-patterns.md` | ✅ | | | | ✅ | | |
-| `requirements/past-decisions.md` | ✅ | | ✅ | | | | ✅ |
-| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | | | | |
-| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | |
-| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | | ✅ |
-| `blueprint/capability-matrix.md` | | | ✅ | | ✅ | | |
-| `schema/base-schema.sql` | | | ✅ | ✅ | ✅ | ✅ | |
-| `schema/erd.md` | | | ✅ | | | | |
-| `schema/schema-conventions.md` | | | ✅ | | ✅ | | |
-| `schema/migrations-guide.md` | | | | | ✅ | | |
+| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | |
+| `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | |
+| `design-principles.md` | | ✅ | | | | | | | | | |
+| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `security-best-practices.md` | | | | | ✅ | ✅ | | | | | |
+| `testing-guidelines.md` | | | | | | | | ✅ | | | |
+| `requirements/personas.md` | ✅ | ✅ | | | | | | | | | |
+| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | | | | | |
+| `requirements/requirement-template.md` | ✅ | | | | | | | | | | |
+| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | | | ✅ | | | |
+| `requirements/approved-patterns.md` | ✅ | | | | | ✅ | | | | | |
+| `requirements/past-decisions.md` | ✅ | | ✅ | | | | | | ✅ | | |
+| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | ✅ | | | | | | | |
+| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | |
+| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ |
+| `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | |
+| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | |
+| `schema/erd.md` | | | ✅ | | | | | | | | |
+| `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | |
+| `schema/migrations-guide.md` | | | | | | ✅ | | | | | |
 
 ---
 
@@ -265,15 +318,25 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 
 ```
 .copilot/pipeline/
-├── state.md           # Current stage, status, session ID
-├── requirements.md    # Requirements agent output
-├── design.md          # Design agent output
-├── planning.md        # Planning agent output
-├── security.md        # Security agent output
-├── coding.md          # Coding agent implementation report
-├── testing.md         # Tester agent report (coverage, failures)
-└── documentation.md   # Documentation agent report
+├── state.md                     # Current stage, status, session ID
+├── requirements.md              # Requirements agent output
+├── design.md                    # Design agent output
+├── planning.md                  # Planning agent output
+├── performance.md               # Performance agent output (bottleneck findings)
+├── security.md                  # Security agent output
+├── coding.md                    # Coding agent implementation report
+├── linting.md                   # Linting agent report (issues fixed, loops completed)
+├── testing.md                   # Tester agent report (coverage, failures)
+├── documentation.md             # Documentation agent report
+├── build.md                     # Build agent report (artifact inventory, sizes)
+├── local-deployment.md          # Local deployment agent report (running services)
+│
+│   ── Persistent memory (survive across pipeline sessions) ──
+├── build-strategy.md            # Approved build strategy — reused on every subsequent build
+└── local-deployment-strategy.md # Approved deployment strategy — reused on every subsequent deploy
 ```
+
+> **Persistent memory files** (`build-strategy.md` and `local-deployment-strategy.md`) are written once when the human approves the strategy on the first run. On all subsequent pipeline runs the build and local deployment agents read these files directly and execute without re-asking for approval — unless the architecture changes significantly enough to warrant a new strategy.
 
 ---
 
