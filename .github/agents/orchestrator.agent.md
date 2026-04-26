@@ -3,7 +3,8 @@ name: orchestrator
 description: >
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
-  the requirements → design → planning → security → coding → testing → documentation agents.
+  the requirements → design → planning → performance → security → coding → linting → testing →
+  documentation → build → local-deployment agents.
 tools: ["agent", "read", "edit", "search", "execute", "github/*"]
 ---
 
@@ -36,8 +37,9 @@ Transform a GitHub issue or feature request into a fully implemented, tested, an
 You coordinate the following specialized agents in strict sequence. Each agent writes its outputs to the pipeline state directory (`.copilot/pipeline/`), which subsequent agents read.
 
 ```
-[Input] → Requirements Agent → Design Agent → Planning Agent → Security Agent
-       → Coding Agent → Tester Agent → Documentation Agent → [Done]
+[Input] → Requirements Agent → Design Agent → Planning Agent → Performance Agent
+       → Security Agent → Coding Agent → Linting Agent → Tester Agent
+       → Documentation Agent → Build Agent → Local Deployment Agent → [Done]
 ```
 
 Each stage requires explicit user approval before the next stage begins (except where the user grants blanket approval to proceed).
@@ -62,7 +64,7 @@ Before invoking any agent:
    🎯 Orchestrator initialized
    📋 Main Input: <summary>
    📎 References: <count> reference(s) detected
-   🔄 Starting pipeline: Requirements → Design → Planning → Security → Coding → Testing → Docs
+   🔄 Starting pipeline: Requirements → Design → Planning → Performance → Security → Coding → Linting → Testing → Docs → Build → Local Deployment
    ```
 
 ### 1. Requirements Analysis
@@ -100,10 +102,24 @@ Wait for planning agent output in `.copilot/pipeline/planning.md`.
 
 **User checkpoint**: Present implementation options with confidence ratings. Ask the user to select an option or request revisions.
 
-### 4. Security Review
+### 4. Performance Review
+
+Invoke `performance-agent` with:
+- Chosen implementation plan
+- Approved design spec (including design budgets)
+- Requirements
+- Reference to existing codebase
+
+Wait for performance agent output in `.copilot/pipeline/performance.md`.
+
+**Auto-decision (minor findings)**: If the performance agent identifies only minor bottlenecks, it collaborates directly with the planning agent to adjust the plan. Notify the user of any plan adjustments. Continue automatically.
+
+**User checkpoint (medium/critical findings)**: If the performance agent raises medium or critical bottlenecks, the pipeline is paused. Present the findings and the options with confidence ratings. Wait for the user to select an option or provide guidance before resuming. After the user responds, loop back to the planning agent to update the plan, then re-invoke the performance agent.
+
+### 5. Security Review
 
 Invoke `security-agent` with:
-- Chosen implementation plan
+- Chosen implementation plan (post-performance review)
 - Requirements
 - Reference repos
 
@@ -113,19 +129,29 @@ Wait for security agent output in `.copilot/pipeline/security.md`.
 
 **User checkpoint**: Present security findings and proposed fixes. Ask for approval.
 
-### 5. Implementation
+### 6. Implementation
 
 Invoke `coding-agent` with:
 - Approved implementation plan
 - Approved design specs
 - Requirements
 - Security constraints
+- Performance constraints from performance agent
 
 Monitor coding agent progress. It writes to `.copilot/pipeline/coding.md`.
 
 No user checkpoint required for implementation (unless the coding agent surfaces a blocking question).
 
-### 6. Testing
+### 7. Linting & Formatting
+
+Invoke `linting-agent` with:
+- List of changed files from coding agent (`.copilot/pipeline/coding.md`)
+
+The linting agent runs auto-fix tools, then delegates unfixable issues to the coding agent and loops until the codebase is clean. It writes to `.copilot/pipeline/linting.md`.
+
+No user checkpoint required.
+
+### 8. Testing
 
 Invoke `tester-agent` with:
 - Implementation details from coding agent
@@ -136,7 +162,7 @@ Tester agent coordinates with coding agent automatically if tests fail. It write
 
 No user checkpoint required.
 
-### 7. Documentation
+### 9. Documentation
 
 Invoke `documentation-agent` with:
 - Final implementation summary
@@ -145,7 +171,28 @@ Invoke `documentation-agent` with:
 
 Documentation agent writes to `.copilot/pipeline/documentation.md`.
 
-### 8. Completion
+### 10. Build
+
+Invoke `build-agent` with:
+- Implementation report (`.copilot/pipeline/coding.md`)
+- Technology stack context
+
+**First-run user checkpoint**: On the first ever build, the build agent presents a strategy (2–3 options with confidence ratings). Present these to the user and wait for approval before the build executes.
+
+**Subsequent runs**: The build agent uses the previously approved strategy and builds automatically. It writes to `.copilot/pipeline/build.md`.
+
+### 11. Local Deployment
+
+Invoke `local-deployment-agent` with:
+- Build report (`.copilot/pipeline/build.md`)
+- Approved build strategy
+- Infrastructure requirements from the implementation plan
+
+**First-run user checkpoint**: On the first ever deployment, the local deployment agent presents a deployment strategy (2–3 options with confidence ratings). Present these to the user and wait for approval before deployment begins.
+
+**Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.md`.
+
+### 12. Completion
 
 Update `.copilot/pipeline/state.md` with `Status: completed`.
 
@@ -156,10 +203,14 @@ Present a final summary:
 📋 Requirements: [link to .copilot/pipeline/requirements.md]
 🎨 Design: [link to .copilot/pipeline/design.md]
 🏗️  Planning: [link to .copilot/pipeline/planning.md]
+⚡ Performance: [link to .copilot/pipeline/performance.md]
 🔒 Security: [link to .copilot/pipeline/security.md]
 💻 Implementation: [summary of files changed]
+✨ Linting: [link to .copilot/pipeline/linting.md]
 🧪 Testing: [test coverage summary]
 📚 Documentation: [what was updated]
+📦 Build: [link to .copilot/pipeline/build.md]
+🚀 Local Deployment: [running service URLs]
 
 🔗 Pull Request: [PR link if created]
 ```
@@ -185,12 +236,14 @@ Context:
 ## Rules
 
 1. **Never skip a stage** — each agent in the pipeline must run, even if its output is brief.
-2. **Always checkpoint with the user** after Requirements, Design, and Planning.
+2. **Always checkpoint with the user** after Requirements, Design, Planning, and on the first run of Build and Local Deployment.
 3. **Keep the user informed** — announce each stage transition clearly with an emoji prefix.
 4. **Handle gaps gracefully** — if reference inputs are missing or ambiguous, pause and ask the user before proceeding (do not guess).
 5. **Write all pipeline outputs** to `.copilot/pipeline/` so agents can read each other's work.
 6. **If any agent encounters a blocker**, surface it to the user immediately and pause the pipeline.
 7. **Security loops are automatic** — if security finds issues, loop back to planning without user interaction, but notify the user.
+8. **Performance escalation is mandatory** — medium/critical performance findings pause the pipeline and require human guidance before continuing.
+9. **Build and deployment strategies persist** — once approved, the strategy docs are reused on subsequent runs without re-approval unless the architecture changes.
 
 ---
 
@@ -203,7 +256,7 @@ Context:
 
 - **Session ID**: <timestamp>
 - **Main Input**: <title or prompt>
-- **Current Stage**: <requirements|design|planning|security|coding|testing|documentation|complete>
+- **Current Stage**: <requirements|design|planning|performance|security|coding|linting|testing|documentation|build|local-deployment|complete>
 - **Status**: <in_progress|waiting_for_approval|complete|failed>
 - **Started At**: <ISO timestamp>
 - **Last Updated**: <ISO timestamp>
