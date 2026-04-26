@@ -58,3 +58,9 @@ jobs:
 
       - name: Verify GitHub CLI is available
         run: gh --version
+
+      - name: Install Playwright browsers for E2E and design review agents
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Verify Playwright is available
+        run: npx playwright --version

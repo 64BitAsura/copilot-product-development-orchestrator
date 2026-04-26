@@ -76,21 +76,23 @@ GitHub Issue / Prompt
 │ Local Deployment│────────────► user (approve strategy)
 └────────┬────────┘
          │ all services healthy
-    ┌────┴────────────────────────────┐
-    ▼                                 ▼
-┌─────────────────┐     ┌─────────────────────┐
-│   E2E Agent     │     │   Design Review     │  (parallel)
-└────────┬────────┘     └──────────┬──────────┘
-    gaps → re-trigger         fails → coding loop
-         │ all AC satisfied        │ all DAC passed
-         └───────────┬─────────────┘
-                     ▼
-┌─────────────────┐     medium/show-stopper deviation?
-│  Back Tracker   │────────────► user (guidance required)
-└────────┬────────┘     minor → auto-loop (max 3×)
-         │ approved
-         ▼
-      Pull Request
+    ┌────┴────────────────────┬────────────────────────┐
+    ▼                         ▼                        ▼
+┌─────────────┐   ┌───────────────────┐   ┌──────────────────────┐
+│  E2E Agent  │   │  Design Review    │   │  Back Tracker        │  (parallel)
+│             │   │                   │   │  Phase 1 (code only) │
+└──────┬──────┘   └────────┬──────────┘   └──────────┬───────────┘
+gaps→re-trigger    fails→coding loop      code findings buffered
+       │ all AC pass        │ all DAC pass             │ analysis done
+       └────────────────────┴──────────────────────────┘
+                            ▼
+             ┌──────────────────────────┐   medium/show-stopper?
+             │  Back Tracker Phase 2    │────────────► user (guidance)
+             │  (final verdict)         │   minor → auto-loop (max 3×)
+             └──────────────┬───────────┘
+                            │ approved
+                            ▼
+                        Pull Request
 ```
 
 ---
@@ -151,7 +153,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval |
 | **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end; loops back through the pipeline when gaps are found |
 | **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment faithfully implements every Design DAC; runs in parallel with the E2E agent; loops with coding on failures, escalates to human after 3 unresolved DACs |
-| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Final alignment gate — compares code changes and E2E results against original requirements; auto-routes minor deviations, escalates medium/show-stopper to human |
+| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Two-phase final gate — Phase 1 (code analysis) runs in parallel with E2E + Design Review; Phase 2 (final verdict) combines all results. Auto-routes minor deviations, escalates medium/show-stopper to human |
 
 ---
 
@@ -372,7 +374,8 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── local-deployment.md          # Local deployment agent report (running services)
 ├── e2e-testing.md               # E2E agent test results (scenario outcomes, gaps found)
 ├── design-review.md             # Design Review agent report (DAC pass/fail evidence)
-├── back-tracker.md              # Back Tracker agent report (requirements coverage verdict)
+├── back-tracker-preliminary.md  # Back Tracker Phase 1 report (code analysis, runs in parallel)
+├── back-tracker.md              # Back Tracker Phase 2 report (final requirements coverage verdict)
 │
 │   ── Persistent memory (survive across pipeline sessions) ──
 ├── build-strategy.md            # Approved build strategy — reused on every subsequent build
@@ -384,11 +387,52 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 
 ---
 
+## MCP Servers
+
+The pipeline uses two MCP (Model Context Protocol) servers for browser automation and GitHub operations. Both are available **out-of-the-box** in Copilot cloud agent — no additional configuration is required for cloud-hosted runs.
+
+| MCP Server | Tool Namespace | Used By | Purpose |
+|-----------|---------------|---------|---------|
+| **Playwright** | `playwright/*` | `e2e-agent`, `design-review-agent` | Browser automation: navigate, interact, screenshot running local deployments |
+| **GitHub** | `github/*` | All agents | Repository operations: read issues, files, PRs; write PRs and comments |
+
+### Playwright MCP Server
+
+The Playwright MCP server gives agents a real browser to test the running local deployment. It is pre-configured in Copilot cloud agent to only access `localhost` (safe for local deployment testing).
+
+**Cloud agent (GitHub-hosted)**: The Playwright MCP server is available out-of-the-box. The `copilot-setup-steps.yml` workflow pre-installs Chromium so the server has a browser to drive:
+
+```yaml
+# Already in .github/workflows/copilot-setup-steps.yml
+- name: Install Playwright browsers for E2E and design review agents
+  run: npx --yes playwright install --with-deps chromium
+```
+
+**VS Code (local development)**: Install the [Playwright MCP extension](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) from the VS Code Marketplace. Once installed, `playwright/*` tools will be available to custom agents running in VS Code.
+
+```
+VS Code Extension ID: ms-playwright.playwright
+```
+
+After installing, reload VS Code and the `playwright/*` tools will appear automatically in any custom agent that lists `playwright/*` in its `tools` property.
+
+### GitHub MCP Server
+
+The GitHub MCP server provides read/write access to the repository. It is available out-of-the-box in Copilot cloud agent with a token scoped to the source repository. No setup is required.
+
+**VS Code**: The GitHub MCP server is available through the built-in GitHub Copilot extension. Ensure you are signed in to GitHub Copilot in VS Code.
+
+### MCP Server Readiness Check
+
+At pipeline start (Step 0), the orchestrator verifies that both MCP servers are reachable before launching any agents. If either is unavailable, the pipeline halts and reports which server is missing with remediation instructions.
+
+---
+
 ## Environment Setup
 
 Secrets and environment variables for agents are set in the `copilot` GitHub Actions environment in your repository settings. See [Setting environment variables in Copilot's environment](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment#setting-environment-variables-in-copilots-environment).
 
-The `.github/workflows/copilot-setup-steps.yml` pre-installs Node.js, Python, PostgreSQL client tools, Docker, and the GitHub CLI for all agent runs.
+The `.github/workflows/copilot-setup-steps.yml` pre-installs Node.js, Python, PostgreSQL client tools, Docker, the GitHub CLI, and Playwright (Chromium) for all agent runs.
 
 ---
 
