@@ -4,7 +4,7 @@ description: >
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
   the requirements → design → planning → performance → security → coding → linting → testing →
-  documentation → build → local-deployment → e2e → back-tracker agents.
+  documentation → build → local-deployment → e2e + design-review (parallel) → back-tracker agents.
 tools: ["agent", "read", "edit", "search", "execute", "github/*"]
 ---
 
@@ -40,7 +40,9 @@ You coordinate the following specialized agents in strict sequence. Each agent w
 [Input] → Requirements Agent → Design Agent → Planning Agent → Performance Agent
        → Security Agent → Coding Agent → Linting Agent → Tester Agent
        → Documentation Agent → Build Agent → Local Deployment Agent
-       → E2E Agent → Back Tracker Agent → [Done]
+       → E2E Agent ──┐
+                     ├──(parallel)── Design Review Agent
+                     └──────────────────────────────────→ Back Tracker Agent → [Done]
 ```
 
 Each stage requires explicit user approval before the next stage begins (except where the user grants blanket approval to proceed).
@@ -65,7 +67,7 @@ Before invoking any agent:
    🎯 Orchestrator initialized
    📋 Main Input: <summary>
    📎 References: <count> reference(s) detected
-   🔄 Starting pipeline: Requirements → Design → Planning → Performance → Security → Coding → Linting → Testing → Docs → Build → Local Deployment → E2E → Back Tracker
+   🔄 Starting pipeline: Requirements → Design → Planning → Performance → Security → Coding → Linting → Testing → Docs → Build → Local Deployment → E2E + Design Review (parallel) → Back Tracker
    ```
 
 ### 1. Requirements Analysis
@@ -88,7 +90,27 @@ Invoke `design-agent` with:
 - Reference inputs (especially images/mockups)
 - Path to pipeline state
 
-Wait for design agent output in `.copilot/pipeline/design.md`.
+The design-agent will first check whether `docs/knowledge/design.md` exists in the knowledge source.
+
+**If the Design System Gate fires (no `docs/knowledge/design.md` and request involves UI/UX)**:
+- The design-agent writes a blocker to `.copilot/pipeline/design.md`
+- **Stop the pipeline immediately.** Do not invoke any downstream agents.
+- Present the blocker to the user:
+  ```
+  ⛔ Pipeline Halted — Design System Required
+
+  The design-agent requires a `docs/knowledge/design.md` file to proceed with UI/UX work.
+  This file defines the product's design system (colour tokens, typography, spacing, components, etc.)
+  following the design.md standard: https://stitch.withgoogle.com/docs/design-md/overview
+
+  Please add `docs/knowledge/design.md` and re-run the pipeline.
+  ```
+- Do not resume until the user has provided the file.
+
+**Otherwise** (design.md exists, or no UI/UX changes are in scope):
+Wait for design agent output in:
+- `.copilot/pipeline/design.md` — design specification
+- `.copilot/pipeline/design-ac.md` — design acceptance criteria (used by design-review-agent)
 
 **User checkpoint**: Present design output. Ask for approval or revisions.
 
@@ -193,7 +215,11 @@ Invoke `local-deployment-agent` with:
 
 **Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.md`.
 
-### 12. E2E Verification
+### 12. E2E Verification + Design Review (Parallel)
+
+After local deployment is confirmed healthy, **invoke both agents in parallel**:
+
+#### 12a. E2E Agent
 
 Invoke `e2e-agent` with:
 - Requirements (`.copilot/pipeline/requirements.md`)
@@ -211,12 +237,35 @@ The E2E agent builds a test plan from the acceptance criteria and executes tests
 
 The E2E agent writes to `.copilot/pipeline/e2e-testing.md` and `.copilot/pipeline/e2e-test-plan.md`.
 
+#### 12b. Design Review Agent (runs in parallel with E2E)
+
+Invoke `design-review-agent` with:
+- Design acceptance criteria (`.copilot/pipeline/design-ac.md`)
+- Design specification (`.copilot/pipeline/design.md`)
+- Local deployment report (`.copilot/pipeline/local-deployment.md`)
+- Design system (`docs/knowledge/design.md`)
+
+**If `design-ac.md` is absent or empty** (no UI/UX changes were in scope): Skip the design-review-agent entirely.
+
+The design-review-agent navigates the running application in a browser, takes screenshots, and verifies every Design AC from `.copilot/pipeline/design-ac.md`.
+
+**Design remedy loop**: If the design-review-agent finds failing ACs, route the failure report to the planning-agent and coding-agent for fixes. After the coding → linting → build → local-deployment cycle, re-invoke the design-review-agent. Repeat until all Design ACs pass (maximum 3 remedy loops per AC before escalating to the user).
+
+**Escalation**: If a design AC remains unresolved after 3 remedy loops, the design-review-agent escalates to the human in the loop. Pause the pipeline and present the full evidence. Do not advance to the back-tracker agent until the escalation is resolved.
+
+The design-review-agent writes to `.copilot/pipeline/design-review.md`.
+
+#### Parallel Completion Gate
+
+**Do not invoke the back-tracker agent** until BOTH the E2E agent AND the design-review-agent have completed with passing results (or have been explicitly waived by the user for design-only or no-UI features).
+
 ### 13. Back Tracker Review
 
 Invoke `back-tracker-agent` with:
 - Requirements (`.copilot/pipeline/requirements.md`)
 - Implementation report (`.copilot/pipeline/coding.md`)
 - E2E test results (`.copilot/pipeline/e2e-testing.md`)
+- Design review results (`.copilot/pipeline/design-review.md`, if it exists)
 - Pipeline state and all other pipeline artifacts
 
 The back-tracker agent performs a final alignment check: comparing code changes AND E2E results against every acceptance criterion.
@@ -239,6 +288,7 @@ Present a final summary:
 
 📋 Requirements: [link to .copilot/pipeline/requirements.md]
 🎨 Design: [link to .copilot/pipeline/design.md]
+📐 Design ACs: [link to .copilot/pipeline/design-ac.md]
 🏗️  Planning: [link to .copilot/pipeline/planning.md]
 ⚡ Performance: [link to .copilot/pipeline/performance.md]
 🔒 Security: [link to .copilot/pipeline/security.md]
@@ -249,6 +299,7 @@ Present a final summary:
 📦 Build: [link to .copilot/pipeline/build.md]
 🚀 Local Deployment: [running service URLs]
 🔬 E2E Verification: [link to .copilot/pipeline/e2e-testing.md] — [N/N acceptance criteria passed]
+🎨 Design Review: [link to .copilot/pipeline/design-review.md] — [N/N design ACs passed] (or "N/A — no UI/UX changes")
 ✅ Back Tracker: [link to .copilot/pipeline/back-tracker.md] — [verdict]
 
 🔗 Pull Request: [PR link if created]
@@ -286,6 +337,9 @@ Context:
 10. **E2E complex scenarios require approval** — before the E2E agent executes destructive or multi-step test scenarios, present them to the user and wait for sign-off.
 11. **Back Tracker is the final gate** — the pipeline is not complete until the back-tracker agent gives an APPROVED verdict. Minor deviations auto-loop; medium and show-stopper deviations require human guidance.
 12. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.md` is reused and extended on subsequent runs, just like the build and deployment strategy docs.
+13. **Design System Gate is a hard stop** — if the design-agent fires the gate (missing `docs/knowledge/design.md` with UI/UX in scope), halt the pipeline and demand the file before proceeding.
+14. **Design Review runs in parallel with E2E** — both must pass before the back-tracker agent is invoked. If there are no UI/UX changes in scope, skip the design-review-agent.
+15. **Design remedy loops are limited** — if any Design AC fails to resolve after 3 iterations, escalate to the human in the loop before advancing.
 
 ---
 
@@ -298,7 +352,7 @@ Context:
 
 - **Session ID**: <timestamp>
 - **Main Input**: <title or prompt>
-- **Current Stage**: <requirements|design|planning|performance|security|coding|linting|testing|documentation|build|local-deployment|e2e|back-tracker|complete>
+- **Current Stage**: <requirements|design|planning|performance|security|coding|linting|testing|documentation|build|local-deployment|e2e|design-review|back-tracker|complete>
 - **Status**: <in_progress|waiting_for_approval|complete|failed>
 - **Started At**: <ISO timestamp>
 - **Last Updated**: <ISO timestamp>
