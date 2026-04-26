@@ -11,7 +11,7 @@ This repository defines a **multi-agent product development pipeline** built on 
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
   the requirements → design → planning → performance → security → coding → linting → testing →
-  documentation → build → local-deployment agents.
+  documentation → build → local-deployment → e2e + design-review (parallel) → back-tracker agents.
 
 ```
 GitHub Issue / Prompt
@@ -76,12 +76,15 @@ GitHub Issue / Prompt
 │ Local Deployment│────────────► user (approve strategy)
 └────────┬────────┘
          │ all services healthy
-         ▼
-┌─────────────────┐     complex scenarios?
-│   E2E Agent     │────────────► user (approve test plan)
-└────────┬────────┘     gaps found → re-trigger agents (max 5×)
-         │ all AC satisfied
-         ▼
+    ┌────┴────────────────────────────┐
+    ▼                                 ▼
+┌─────────────────┐     ┌─────────────────────┐
+│   E2E Agent     │     │   Design Review     │  (parallel)
+└────────┬────────┘     └──────────┬──────────┘
+    gaps → re-trigger         fails → coding loop
+         │ all AC satisfied        │ all DAC passed
+         └───────────┬─────────────┘
+                     ▼
 ┌─────────────────┐     medium/show-stopper deviation?
 │  Back Tracker   │────────────► user (guidance required)
 └────────┬────────┘     minor → auto-loop (max 3×)
@@ -108,6 +111,7 @@ The `docs/knowledge/` folder is where you describe **your product**. Agents read
 |------|------------------|
 | `docs/knowledge/product-vision.md` | Your product's purpose, target users, problems solved, success metrics |
 | `docs/knowledge/key-features.md` | Every feature your product has or plans to have |
+| `docs/knowledge/design.md` | Your product design system — colour tokens, typography, spacing, components, and patterns |
 | `docs/knowledge/requirements/personas.md` | The people who use your product |
 | `docs/knowledge/blueprint/feature-map.md` | Full feature inventory with IDs, statuses, and dependencies |
 | `docs/knowledge/blueprint/domain-model.md` | Your core entities, their relationships, and ubiquitous language |
@@ -146,6 +150,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval |
 | **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval |
 | **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end; loops back through the pipeline when gaps are found |
+| **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment faithfully implements every Design DAC; runs in parallel with the E2E agent; loops with coding on failures, escalates to human after 3 unresolved DACs |
 | **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Final alignment gate — compares code changes and E2E results against original requirements; auto-routes minor deviations, escalates medium/show-stopper to human |
 
 ---
@@ -170,9 +175,10 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 ### Design Agent
 | File | Why |
 |------|-----|
+| `design.md` | Product design system — tokens, components, and patterns that all UI/UX work must follow |
 | `product-vision.md` | Align designs with product goals |
 | `key-features.md` | Design must cover all relevant features |
-| `design-principles.md` | UX/UI rules, accessibility, and brand guidelines |
+| `design-principles.md` | Supplementary UX/UI principles (philosophy and guidelines, not design tokens) |
 | `requirements/personas.md` | Design for the right users |
 | `blueprint/feature-map.md` | Understand how features relate |
 
@@ -269,30 +275,36 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/feature-map.md` | Check interactions with existing features and confirm no regressions |
 | `requirements/past-decisions.md` | Confirm the implementation respects historical architectural decisions |
 
+### Design Review Agent
+| File | Why |
+|------|-----|
+| `design.md` | Authoritative design system reference for verifying that the implementation matches tokens, components, and patterns |
+
 ### Summary Matrix
 
-| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | BackTrack |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | ✅ |
-| `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | ✅ |
-| `design-principles.md` | | ✅ | | | | | | | | | | | |
-| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | | |
-| `security-best-practices.md` | | | | | ✅ | ✅ | | | | | | | |
-| `testing-guidelines.md` | | | | | | | | ✅ | | | | ✅ | |
-| `requirements/personas.md` | ✅ | ✅ | | | | | | | | | | | |
-| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | | | | | | | |
-| `requirements/requirement-template.md` | ✅ | | | | | | | | | | | | |
-| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | | | ✅ | | | | | |
-| `requirements/approved-patterns.md` | ✅ | | | | | ✅ | | | | | | | |
-| `requirements/past-decisions.md` | ✅ | | ✅ | | | | | | ✅ | | | | ✅ |
-| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | ✅ | | | | | | | | | ✅ |
-| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | | |
-| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ | ✅ | |
-| `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | | | |
-| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | |
-| `schema/erd.md` | | | ✅ | | | | | | | | | | |
-| `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | |
-| `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | |
+| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | DrRev | BackTrack |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
+| `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
+| `design.md` | | ✅ | | | | | | | | | | | ✅ | |
+| `design-principles.md` | | ✅ | | | | | | | | | | | | |
+| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | | | |
+| `security-best-practices.md` | | | | | ✅ | ✅ | | | | | | | | |
+| `testing-guidelines.md` | | | | | | | | ✅ | | | | ✅ | | |
+| `requirements/personas.md` | ✅ | ✅ | | | | | | | | | | | | |
+| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | | | | | | | | |
+| `requirements/requirement-template.md` | ✅ | | | | | | | | | | | | | |
+| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | | | ✅ | | | | | | |
+| `requirements/approved-patterns.md` | ✅ | | | | | ✅ | | | | | | | | |
+| `requirements/past-decisions.md` | ✅ | | ✅ | | | | | | ✅ | | | | | ✅ |
+| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | ✅ | | | | | | | | | | ✅ |
+| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | | | |
+| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ | ✅ | | |
+| `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | | | | |
+| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | | |
+| `schema/erd.md` | | | ✅ | | | | | | | | | | | |
+| `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | | |
+| `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | | |
 
 ---
 
@@ -305,6 +317,7 @@ docs/knowledge/
 ├── product-vision.md          # ✏️ YOUR product's purpose, users, and success metrics
 ├── key-features.md            # ✏️ YOUR product's feature inventory
 ├── design-principles.md       # UX/UI rules (sensible defaults — update to match your product)
+├── design.md                  # ✏️ YOUR product design system (required for UI/UX work)
 ├── tech-stack.md              # ✏️ YOUR technology choices
 ├── security-best-practices.md # Security patterns (agents append findings here)
 ├── testing-guidelines.md      # Test standards (agents append framework patterns here)
@@ -347,6 +360,7 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── state.md                     # Current stage, status, session ID
 ├── requirements.md              # Requirements agent output
 ├── design.md                    # Design agent output
+├── design-ac.md                 # Design acceptance criteria (verified by design-review-agent)
 ├── planning.md                  # Planning agent output
 ├── performance.md               # Performance agent output (bottleneck findings)
 ├── security.md                  # Security agent output
@@ -357,6 +371,7 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── build.md                     # Build agent report (artifact inventory, sizes)
 ├── local-deployment.md          # Local deployment agent report (running services)
 ├── e2e-testing.md               # E2E agent test results (scenario outcomes, gaps found)
+├── design-review.md             # Design Review agent report (DAC pass/fail evidence)
 ├── back-tracker.md              # Back Tracker agent report (requirements coverage verdict)
 │
 │   ── Persistent memory (survive across pipeline sessions) ──
