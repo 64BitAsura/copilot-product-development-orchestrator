@@ -4,7 +4,7 @@ description: >
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
   the requirements → design → planning → performance → security → coding → linting → testing →
-  documentation → build → local-deployment agents.
+  documentation → build → local-deployment → e2e → back-tracker agents.
 tools: ["agent", "read", "edit", "search", "execute", "github/*"]
 ---
 
@@ -39,7 +39,8 @@ You coordinate the following specialized agents in strict sequence. Each agent w
 ```
 [Input] → Requirements Agent → Design Agent → Planning Agent → Performance Agent
        → Security Agent → Coding Agent → Linting Agent → Tester Agent
-       → Documentation Agent → Build Agent → Local Deployment Agent → [Done]
+       → Documentation Agent → Build Agent → Local Deployment Agent
+       → E2E Agent → Back Tracker Agent → [Done]
 ```
 
 Each stage requires explicit user approval before the next stage begins (except where the user grants blanket approval to proceed).
@@ -64,7 +65,7 @@ Before invoking any agent:
    🎯 Orchestrator initialized
    📋 Main Input: <summary>
    📎 References: <count> reference(s) detected
-   🔄 Starting pipeline: Requirements → Design → Planning → Performance → Security → Coding → Linting → Testing → Docs → Build → Local Deployment
+   🔄 Starting pipeline: Requirements → Design → Planning → Performance → Security → Coding → Linting → Testing → Docs → Build → Local Deployment → E2E → Back Tracker
    ```
 
 ### 1. Requirements Analysis
@@ -192,7 +193,43 @@ Invoke `local-deployment-agent` with:
 
 **Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.md`.
 
-### 12. Completion
+### 12. E2E Verification
+
+Invoke `e2e-agent` with:
+- Requirements (`.copilot/pipeline/requirements.md`)
+- Local deployment report (`.copilot/pipeline/local-deployment.md`)
+- Implementation report (`.copilot/pipeline/coding.md`)
+- Existing E2E test plan (`.copilot/pipeline/e2e-test-plan.md`, if it exists)
+
+The E2E agent builds a test plan from the acceptance criteria and executes tests against the running environment using real tools (browser, CLI, database clients, logs).
+
+**Simple scenarios**: The agent proceeds automatically.
+
+**Complex scenario checkpoint**: If any scenarios are classified as complex (destructive actions, multi-step orchestration, significant test code), the E2E agent pauses and presents them for approval. Wait for user approval before those specific scenarios execute.
+
+**Remedy loop**: If the E2E agent finds gaps, it notifies you. Re-trigger the minimum necessary agents (coding → linting → tester → build → local deployment), then re-invoke the E2E agent. Repeat until all acceptance criteria have passing E2E evidence (maximum 5 loops before escalating to the user).
+
+The E2E agent writes to `.copilot/pipeline/e2e-testing.md` and `.copilot/pipeline/e2e-test-plan.md`.
+
+### 13. Back Tracker Review
+
+Invoke `back-tracker-agent` with:
+- Requirements (`.copilot/pipeline/requirements.md`)
+- Implementation report (`.copilot/pipeline/coding.md`)
+- E2E test results (`.copilot/pipeline/e2e-testing.md`)
+- Pipeline state and all other pipeline artifacts
+
+The back-tracker agent performs a final alignment check: comparing code changes AND E2E results against every acceptance criterion.
+
+**Auto-remedy (minor deviations)**: The back-tracker agent routes minor deviations back through the orchestrator automatically. Re-trigger the necessary agents, then re-invoke the back-tracker agent. No user checkpoint required (maximum 3 auto-remedy loops).
+
+**User checkpoint (medium deviations)**: If the back-tracker finds medium deviations, the pipeline is paused. Present the findings and options. Wait for user guidance before remediation.
+
+**User checkpoint (show-stoppers)**: If the back-tracker finds show-stopper deviations, escalate to the user immediately. Do not proceed until the user provides guidance and the show-stoppers are resolved.
+
+**Approved**: The back-tracker agent writes to `.copilot/pipeline/back-tracker.md` and updates `docs/knowledge/requirements/past-decisions.md` with any new architectural decisions from this session.
+
+### 14. Completion
 
 Update `.copilot/pipeline/state.md` with `Status: completed`.
 
@@ -211,6 +248,8 @@ Present a final summary:
 📚 Documentation: [what was updated]
 📦 Build: [link to .copilot/pipeline/build.md]
 🚀 Local Deployment: [running service URLs]
+🔬 E2E Verification: [link to .copilot/pipeline/e2e-testing.md] — [N/N acceptance criteria passed]
+✅ Back Tracker: [link to .copilot/pipeline/back-tracker.md] — [verdict]
 
 🔗 Pull Request: [PR link if created]
 ```
@@ -244,6 +283,9 @@ Context:
 7. **Security loops are automatic** — if security finds issues, loop back to planning without user interaction, but notify the user.
 8. **Performance escalation is mandatory** — medium/critical performance findings pause the pipeline and require human guidance before continuing.
 9. **Build and deployment strategies persist** — once approved, the strategy docs are reused on subsequent runs without re-approval unless the architecture changes.
+10. **E2E complex scenarios require approval** — before the E2E agent executes destructive or multi-step test scenarios, present them to the user and wait for sign-off.
+11. **Back Tracker is the final gate** — the pipeline is not complete until the back-tracker agent gives an APPROVED verdict. Minor deviations auto-loop; medium and show-stopper deviations require human guidance.
+12. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.md` is reused and extended on subsequent runs, just like the build and deployment strategy docs.
 
 ---
 
@@ -256,7 +298,7 @@ Context:
 
 - **Session ID**: <timestamp>
 - **Main Input**: <title or prompt>
-- **Current Stage**: <requirements|design|planning|performance|security|coding|linting|testing|documentation|build|local-deployment|complete>
+- **Current Stage**: <requirements|design|planning|performance|security|coding|linting|testing|documentation|build|local-deployment|e2e|back-tracker|complete>
 - **Status**: <in_progress|waiting_for_approval|complete|failed>
 - **Started At**: <ISO timestamp>
 - **Last Updated**: <ISO timestamp>

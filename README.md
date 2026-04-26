@@ -77,6 +77,16 @@ GitHub Issue / Prompt
 └────────┬────────┘
          │ all services healthy
          ▼
+┌─────────────────┐     complex scenarios?
+│   E2E Agent     │────────────► user (approve test plan)
+└────────┬────────┘     gaps found → re-trigger agents (max 5×)
+         │ all AC satisfied
+         ▼
+┌─────────────────┐     medium/show-stopper deviation?
+│  Back Tracker   │────────────► user (guidance required)
+└────────┬────────┘     minor → auto-loop (max 3×)
+         │ approved
+         ▼
       Pull Request
 ```
 
@@ -135,6 +145,8 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes |
 | **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval |
 | **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval |
+| **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end; loops back through the pipeline when gaps are found |
+| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Final alignment gate — compares code changes and E2E results against original requirements; auto-routes minor deviations, escalates medium/show-stopper to human |
 
 ---
 
@@ -243,30 +255,44 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `tech-stack.md` | Understand the runtime stack to choose correct base images and emulators |
 | `blueprint/integration-points.md` | Identify every cloud service that needs a local emulator substitute |
 
+### E2E Agent
+| File | Why |
+|------|-----|
+| `testing-guidelines.md` | Follow project test standards and any existing E2E conventions |
+| `blueprint/integration-points.md` | Know which external integrations need to be exercised in E2E flows |
+
+### Back Tracker Agent
+| File | Why |
+|------|-----|
+| `product-vision.md` | Validate implementation against the product's core purpose and success metrics |
+| `key-features.md` | Ensure no existing feature was broken and the new feature fits the product |
+| `blueprint/feature-map.md` | Check interactions with existing features and confirm no regressions |
+| `requirements/past-decisions.md` | Confirm the implementation respects historical architectural decisions |
+
 ### Summary Matrix
 
-| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | |
-| `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | |
-| `design-principles.md` | | ✅ | | | | | | | | | |
-| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `security-best-practices.md` | | | | | ✅ | ✅ | | | | | |
-| `testing-guidelines.md` | | | | | | | | ✅ | | | |
-| `requirements/personas.md` | ✅ | ✅ | | | | | | | | | |
-| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | | | | | |
-| `requirements/requirement-template.md` | ✅ | | | | | | | | | | |
-| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | | | ✅ | | | |
-| `requirements/approved-patterns.md` | ✅ | | | | | ✅ | | | | | |
-| `requirements/past-decisions.md` | ✅ | | ✅ | | | | | | ✅ | | |
-| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | ✅ | | | | | | | |
-| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | |
-| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ |
-| `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | |
-| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | |
-| `schema/erd.md` | | | ✅ | | | | | | | | |
-| `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | |
-| `schema/migrations-guide.md` | | | | | | ✅ | | | | | |
+| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | BackTrack |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | ✅ |
+| `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | ✅ |
+| `design-principles.md` | | ✅ | | | | | | | | | | | |
+| `tech-stack.md` | | | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | | |
+| `security-best-practices.md` | | | | | ✅ | ✅ | | | | | | | |
+| `testing-guidelines.md` | | | | | | | | ✅ | | | | ✅ | |
+| `requirements/personas.md` | ✅ | ✅ | | | | | | | | | | | |
+| `requirements/gap-analysis-checklist.md` | ✅ | | | | | | | | | | | | |
+| `requirements/requirement-template.md` | ✅ | | | | | | | | | | | | |
+| `requirements/acceptance-criteria-guide.md` | ✅ | | | | | | | ✅ | | | | | |
+| `requirements/approved-patterns.md` | ✅ | | | | | ✅ | | | | | | | |
+| `requirements/past-decisions.md` | ✅ | | ✅ | | | | | | ✅ | | | | ✅ |
+| `blueprint/feature-map.md` | ✅ | ✅ | ✅ | ✅ | | | | | | | | | ✅ |
+| `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | | |
+| `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ | ✅ | |
+| `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | | | |
+| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | |
+| `schema/erd.md` | | | ✅ | | | | | | | | | | |
+| `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | |
+| `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | |
 
 ---
 
@@ -330,13 +356,16 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── documentation.md             # Documentation agent report
 ├── build.md                     # Build agent report (artifact inventory, sizes)
 ├── local-deployment.md          # Local deployment agent report (running services)
+├── e2e-testing.md               # E2E agent test results (scenario outcomes, gaps found)
+├── back-tracker.md              # Back Tracker agent report (requirements coverage verdict)
 │
 │   ── Persistent memory (survive across pipeline sessions) ──
 ├── build-strategy.md            # Approved build strategy — reused on every subsequent build
-└── local-deployment-strategy.md # Approved deployment strategy — reused on every subsequent deploy
+├── local-deployment-strategy.md # Approved deployment strategy — reused on every subsequent deploy
+└── e2e-test-plan.md             # Approved E2E test plan — extended on every subsequent run
 ```
 
-> **Persistent memory files** (`build-strategy.md` and `local-deployment-strategy.md`) are written once when the human approves the strategy on the first run. On all subsequent pipeline runs the build and local deployment agents read these files directly and execute without re-asking for approval — unless the architecture changes significantly enough to warrant a new strategy.
+> **Persistent memory files** (`build-strategy.md`, `local-deployment-strategy.md`, and `e2e-test-plan.md`) are written once when the human approves the strategy/plan on the first run. On all subsequent pipeline runs the relevant agents read these files directly and build on them without re-asking for approval — unless the architecture or requirements change significantly enough to warrant a new strategy.
 
 ---
 
