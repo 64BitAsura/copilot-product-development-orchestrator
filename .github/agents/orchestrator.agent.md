@@ -243,7 +243,7 @@ Invoke `design-review-agent` with:
 - Design acceptance criteria (`.copilot/pipeline/design-ac.md`)
 - Design specification (`.copilot/pipeline/design.md`)
 - Local deployment report (`.copilot/pipeline/local-deployment.md`)
-- Design system (`.copilot/pipeline/design.md` + `docs/knowledge/design.md`)
+- Design system (`docs/knowledge/design.md`)
 
 **If `design-ac.md` is absent or empty** (no UI/UX changes were in scope): Skip the design-review-agent entirely.
 

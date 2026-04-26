@@ -118,6 +118,7 @@ Write complete output to `.copilot/pipeline/design-review.md`:
 
 ## Summary
 
+<!-- Replace N with actual counts during verification -->
 | Category | Total | Passed | Failed |
 |----------|-------|--------|--------|
 | Visual & Layout | N | N | N |
