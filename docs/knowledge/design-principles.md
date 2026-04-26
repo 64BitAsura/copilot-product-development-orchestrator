@@ -2,7 +2,7 @@
 
 > Principles that guide all UX and UI decisions in this product. The design agent reads these before producing any design spec. All new design work must justify its decisions against these principles or explicitly note a deviation with a rationale.
 >
-> **Output format:** Every design specification produced by the design agent must be structured as a `DESIGN.md` file following the [Google Stitch DESIGN.md format](https://stitch.withgoogle.com/docs/design-md/overview). See [`design-md-spec.md`](./design-md-spec.md) for the required sections, template, and agent instructions.
+> **Output format:** Every design specification produced by the design agent must be structured as a `DESIGN.md` file following the [Google Stitch DESIGN.md format](https://stitch.withgoogle.com/docs/design-md/overview). See [`design.md`](./design.md) for the required sections, template, and agent instructions.
 
 ---
 

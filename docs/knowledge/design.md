@@ -6,9 +6,36 @@
 
 ## What Is a DESIGN.md?
 
-A `DESIGN.md` is a structured, human- and AI-readable design specification file that accompanies each feature or application. It acts as the single source of truth for UX decisions, design tokens, component specifications, layout rules, and accessibility requirements for that scope of work. When the design agent produces a specification, it outputs a `DESIGN.md` following the format below.
+A `DESIGN.md` is a structured, human- and AI-readable design specification file that accompanies each feature or application. It acts as the single source of truth for UX decisions, design tokens, component specifications, layout rules, accessibility requirements, and acceptance criteria for that scope of work.
 
 Reference: [https://stitch.withgoogle.com/docs/design-md/overview](https://stitch.withgoogle.com/docs/design-md/overview)
+
+---
+
+## Design Agent — Two Modes of Operation
+
+The design agent operates in exactly one of two modes on every run. The mode is determined by checking whether a `DESIGN.md` file already exists in the project root (or the feature directory being worked on).
+
+### Mode 1 — Create (no existing DESIGN.md)
+
+**Trigger:** No `DESIGN.md` file is found.
+
+**Behaviour:**
+1. Generate a complete `DESIGN.md` for the current feature or application following all sections defined in this document (sections 1–11 required, 12–13 optional).
+2. Commit the file as the first artefact of the design phase before passing work to the planning or coding agent.
+3. Do **not** proceed to planning or coding guidance until the `DESIGN.md` is written and committed.
+
+### Mode 2 — Follow (existing DESIGN.md found)
+
+**Trigger:** A `DESIGN.md` file already exists.
+
+**Behaviour:**
+1. **Do not alter the existing `DESIGN.md` in any way.** The file is treated as immutable during this pipeline run.
+2. Read the entire file and extract: design tokens, component specs, layout rules, accessibility requirements, user flows, and acceptance criteria.
+3. Translate the spec into actionable guidance for the **planning agent** (architecture decisions, component boundaries, data models) and the **coding agent** (component implementation, token usage, accessibility constraints).
+4. Surface any discovered inconsistency or gap as a comment to the orchestrator — never silently modify the spec.
+
+> **Rule:** The design agent creates or follows — it never edits an existing `DESIGN.md`.
 
 ---
 
@@ -150,7 +177,49 @@ Confirm this design stays within the [product-wide design budgets](./design-prin
 
 ---
 
-### 10. Open Questions _(optional)_
+### 10. Acceptance Criteria
+
+> **This section is written by the design agent and consumed verbatim by the e2e agent.** Every criterion listed here is a mandatory check in the e2e agent's test run. The e2e agent must report pass/fail for each AC item by its ID and include the full results in its test report.
+
+List every verifiable behaviour that the implementation must satisfy. Use the Given/When/Then format. Assign each criterion a stable ID (`AC-001`, `AC-002`, …).
+
+#### Format
+
+```
+**AC-001** — <Short title>
+- Given: <precondition>
+- When: <user action or system event>
+- Then: <expected observable outcome>
+- E2E check: <how the e2e agent should verify this — UI assertion, API assertion, screenshot, etc.>
+```
+
+#### Example
+
+```
+**AC-001** — User can create a new item from the empty state
+- Given: the user is authenticated and no items exist
+- When: the user clicks "Create first item" on the empty state screen
+- Then: a creation modal opens within 300ms
+- E2E check: assert modal is visible; assert focus is on the first form field
+
+**AC-002** — Form submission shows a loading state
+- Given: the creation form is filled with valid data
+- When: the user clicks "Save"
+- Then: the submit button transitions to a loading spinner within 200ms and is disabled
+- E2E check: assert button has loading attribute; assert button is not clickable during request
+
+**AC-003** — Success toast appears after creation
+- Given: the creation request completes successfully
+- When: the server returns 201
+- Then: a success toast reading "Item created" is visible for 4 seconds then dismisses
+- E2E check: assert toast text; assert toast disappears after 4 seconds
+```
+
+> The design agent must write at minimum one AC per user flow branch (happy path and each error/edge path). Do not leave this section empty.
+
+---
+
+### 11. Open Questions _(optional)_
 
 List any unresolved design decisions that need stakeholder input before implementation.
 
@@ -159,7 +228,7 @@ List any unresolved design decisions that need stakeholder input before implemen
 
 ---
 
-### 11. Changelog _(optional, recommended for long-lived features)_
+### 12. Changelog _(optional, recommended for long-lived features)_
 
 | Version | Date | Author | Summary of Changes |
 |---------|------|--------|--------------------|
@@ -171,10 +240,13 @@ List any unresolved design decisions that need stakeholder input before implemen
 
 When producing a `DESIGN.md`:
 
-1. **Always output every required section** (sections 1–9). Omitting a section is a defect.
-2. **Reference the product token set** — do not invent standalone pixel values. Map every visual decision to a named token.
-3. **Justify new components** — if a new component is introduced, explain why no existing component satisfies the need.
-4. **Apply the design principles** — every decision must be traceable to one of the principles in [`design-principles.md`](./design-principles.md). If a principle is overridden, state the reason explicitly.
-5. **Fill the Design Budget Compliance table** — calculate the actual values for this feature and confirm they are within budget.
-6. **Use plain language** — the spec is read by engineers and AI agents. Avoid visual design jargon that cannot be directly implemented.
-7. **Keep scope tight** — one `DESIGN.md` per feature or screen group. Do not mix unrelated flows in a single file.
+1. **Check for an existing `DESIGN.md` first** — if found, switch to Mode 2 (Follow) and do not create or edit the file. If not found, proceed to create it (Mode 1).
+2. **Always output every required section** (sections 1–10). Omitting a section is a defect.
+3. **Reference the product token set** — do not invent standalone pixel values. Map every visual decision to a named token.
+4. **Justify new components** — if a new component is introduced, explain why no existing component satisfies the need.
+5. **Apply the design principles** — every decision must be traceable to one of the principles in [`design-principles.md`](./design-principles.md). If a principle is overridden, state the reason explicitly.
+6. **Fill the Design Budget Compliance table** — calculate the actual values for this feature and confirm they are within budget.
+7. **Write Acceptance Criteria (section 10)** — at minimum one AC per user flow branch. Use Given/When/Then + E2E check. Assign stable IDs starting at `AC-001`. These are consumed directly by the e2e agent.
+8. **Use plain language** — the spec is read by engineers and AI agents. Avoid visual design jargon that cannot be directly implemented.
+9. **Keep scope tight** — one `DESIGN.md` per feature or screen group. Do not mix unrelated flows in a single file.
+
