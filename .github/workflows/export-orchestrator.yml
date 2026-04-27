@@ -1,0 +1,146 @@
+name: Export Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target repository to export into (format: owner/repo)"
+        required: true
+        type: string
+      branch:
+        description: "Branch name to create in the target repo"
+        required: false
+        default: "add-copilot-orchestrator"
+        type: string
+      include_docs_skeleton:
+        description: "Also copy the docs/knowledge/ skeleton (useful for brand-new repos)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  export:
+    name: Export orchestrator to ${{ inputs.target_repo }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout orchestrator source
+        uses: actions/checkout@v4
+        with:
+          path: orchestrator
+
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo }}
+          token: ${{ secrets.EXPORT_GH_TOKEN }}
+          path: target
+          fetch-depth: 0
+
+      - name: Create export branch in target repo
+        working-directory: target
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # If the branch already exists remotely, reset to it; otherwise create fresh.
+          if git ls-remote --exit-code --heads origin "${{ inputs.branch }}"; then
+            git checkout "${{ inputs.branch }}"
+          else
+            git checkout -b "${{ inputs.branch }}"
+          fi
+
+      - name: Copy agent files
+        run: |
+          mkdir -p target/.github/agents
+          cp orchestrator/.github/agents/*.agent.md target/.github/agents/
+
+      - name: Copy Copilot setup-steps workflow
+        run: |
+          mkdir -p target/.github/workflows
+          cp orchestrator/.github/workflows/copilot-setup-steps.yml \
+             target/.github/workflows/copilot-setup-steps.yml
+
+      - name: Copy docs/knowledge skeleton (optional)
+        if: inputs.include_docs_skeleton
+        run: |
+          mkdir -p target/docs
+          cp -r orchestrator/docs/knowledge target/docs/knowledge
+
+      - name: Commit and push changes
+        working-directory: target
+        env:
+          INCLUDE_DOCS: ${{ inputs.include_docs_skeleton }}
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          EXPORT_BRANCH: ${{ inputs.branch }}
+        run: |
+          git add .
+          if git diff --cached --quiet; then
+            echo "Nothing to commit — target repo is already up to date."
+            exit 0
+          fi
+          DOCS_LINE=""
+          if [ "$INCLUDE_DOCS" = "true" ]; then
+            DOCS_LINE="          - docs/knowledge/ — knowledge harness skeleton"
+          fi
+          git commit -m "feat: add Copilot product-development orchestrator
+
+          Exported from https://github.com/${SOURCE_REPO} @ ${SOURCE_SHA}
+
+          Includes:
+          - .github/agents/ — all 15 custom agent definitions
+          - .github/workflows/copilot-setup-steps.yml — Copilot environment setup
+          ${DOCS_LINE}"
+          git push origin "$EXPORT_BRANCH"
+
+      - name: Open pull request in target repo
+        env:
+          GH_TOKEN: ${{ secrets.EXPORT_GH_TOKEN }}
+          INCLUDE_DOCS: ${{ inputs.include_docs_skeleton }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          EXPORT_BRANCH: ${{ inputs.branch }}
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          DEFAULT_BRANCH=$(gh repo view "$TARGET_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
+
+          DOCS_ROW=""
+          if [ "$INCLUDE_DOCS" = "true" ]; then
+            DOCS_ROW="| \`docs/knowledge/\` | Knowledge harness skeleton — fill in with your product details |"
+          fi
+
+          PR_BODY="## What is this?
+
+          This PR adds the **Copilot Product-Development Orchestrator** — a multi-agent pipeline that transforms a GitHub issue into production-ready code.
+
+          Exported from [\`${SOURCE_REPO}\`](https://github.com/${SOURCE_REPO}) at commit \`${SOURCE_SHA}\`.
+
+          ## What's included
+
+          | Path | Purpose |
+          |------|---------|
+          | \`.github/agents/\` | 15 custom agent definitions (orchestrator, requirements, design, planning, performance, security, coding, linting, tester, documentation, build, local-deployment, e2e, design-review, back-tracker) |
+          | \`.github/workflows/copilot-setup-steps.yml\` | Installs all agent dependencies (Node.js, Python, Playwright, Docker, GitHub CLI) |
+          ${DOCS_ROW}
+
+          ## Next steps
+
+          1. Merge this PR.
+          2. Fill in \`docs/knowledge/\` with your product details (vision, features, tech stack, schema, etc.).
+          3. Open a GitHub issue, assign it to Copilot, and select the **\`orchestrator\`** agent.
+
+          > See the [full setup guide](https://github.com/${SOURCE_REPO}#quick-start) for details."
+
+          if gh pr create \
+            --repo "$TARGET_REPO" \
+            --head "$EXPORT_BRANCH" \
+            --base "$DEFAULT_BRANCH" \
+            --title "feat: add Copilot product-development orchestrator" \
+            --body "$PR_BODY"; then
+            echo "Pull request created successfully."
+          else
+            echo "PR creation skipped — a pull request for this branch may already exist."
+          fi
