@@ -6,19 +6,20 @@
 
 ## What Is This?
 
-This repository defines a **multi-agent product development pipeline** built on [GitHub Copilot custom agents](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents). Each agent is a specialist in one stage of software development. The orchestrator coordinates them in sequence.
+This repository defines a **multi-agent product development pipeline** built on [GitHub Copilot custom agents](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents). Each agent is a specialist in one stage of software development. The orchestrator coordinates them in an optimised sequence with parallel stages where possible.
 
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
-  the requirements → design → planning → performance → security → coding → linting → testing →
-  documentation → build → local-deployment → e2e + design-review (parallel) → back-tracker agents.
+  requirements → design → planning → performance+security (parallel) → coding → linting → testing →
+  documentation → build → local-deployment → e2e + design-review + back-tracker-phase-1 (parallel)
+  → back-tracker-phase-2 → pull request.
 
 ```
 GitHub Issue / Prompt
         │
         ▼
-┌─────────────────┐
-│  Orchestrator   │  ← your entry point
+┌─────────────────┐   fast-lane classification
+│  Orchestrator   │────────────► (full / backend / hotfix / config)
 └────────┬────────┘
          │
          ▼
@@ -28,7 +29,7 @@ GitHub Issue / Prompt
          │ approved
          ▼
 ┌─────────────────┐
-│     Design      │────────────► user (approve/revise)
+│     Design      │────────────► user (approve/revise)   ← skipped on backend/hotfix/config lanes
 └────────┬────────┘
          │ approved
          ▼
@@ -37,16 +38,14 @@ GitHub Issue / Prompt
 └────────┬────────┘
          │ option selected
          ▼
-┌─────────────────┐     medium/critical?
-│  Performance    │────────────► user (pause & select fix)
-└────────┬────────┘     minor → Planning (auto-adjust)
-         │ cleared
-         ▼
-┌─────────────────┐     issues?
-│    Security     │────────────► Planning (auto-loop, max 3×)
-└────────┬────────┘
-         │ cleared
-         ▼
+┌───────────────────────────────────────┐
+│  Performance + Security  (parallel)   │  ← both analyze planning.md simultaneously
+│  - minor perf → Planning (auto-adjust)│
+│  - medium/critical perf → user        │
+│  - security BLOCKED → Planning loop   │────────────► user (security approval)
+└──────────────────┬────────────────────┘
+                   │ both cleared
+                   ▼
 ┌─────────────────┐
 │     Coding      │  (delegates to language subagents)
 └────────┬────────┘
@@ -62,37 +61,32 @@ GitHub Issue / Prompt
 └────────┬────────┘
          │ all tests pass
          ▼
-┌─────────────────┐
-│  Documentation  │  (OpenAPI, changelog, impl notes)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     first run?
-│     Build       │────────────► user (approve strategy)
-└────────┬────────┘
-         │ artifacts ready
-         ▼
-┌─────────────────┐     first run?
-│ Local Deployment│────────────► user (approve strategy)
-└────────┬────────┘
-         │ all services healthy
-    ┌────┴────────────────────┬────────────────────────┐
-    ▼                         ▼                        ▼
-┌─────────────┐   ┌───────────────────┐   ┌──────────────────────┐
-│  E2E Agent  │   │  Design Review    │   │  Back Tracker        │  (parallel)
-│             │   │                   │   │  Phase 1 (code only) │
-└──────┬──────┘   └────────┬──────────┘   └──────────┬───────────┘
-gaps→re-trigger    fails→coding loop      code findings buffered
-       │ all AC pass        │ all DAC pass             │ analysis done
-       └────────────────────┴──────────────────────────┘
-                            ▼
-             ┌──────────────────────────┐   medium/show-stopper?
-             │  Back Tracker Phase 2    │────────────► user (guidance)
-             │  (final verdict)         │   minor → auto-loop (max 3×)
-             └──────────────┬───────────┘
-                            │ approved
-                            ▼
-                        Pull Request
+┌─────────────────┐           ┌─────────────────┐
+│  Documentation  │           │     Build       │────────────► user (approve strategy, first run)
+│  (can overlap   │           └────────┬────────┘
+│   with Build)   │                    │ artifacts ready
+└─────────────────┘                    ▼
+                          ┌─────────────────────┐     first run?
+                          │  Local Deployment   │────────────► user (approve strategy)
+                          └──────────┬──────────┘
+                                     │ all services healthy
+                    ┌────────────────┴──────────────────┬────────────────────────┐
+                    ▼                                    ▼                        ▼
+            ┌─────────────┐            ┌───────────────────┐   ┌──────────────────────┐
+            │  E2E Agent  │            │  Design Review    │   │  Back Tracker        │  (parallel)
+            │             │            │  (skipped on non- │   │  Phase 1 (code only) │
+            └──────┬──────┘            │   UI lanes)       │   └──────────┬───────────┘
+     gaps→re-trigger        fails→coding loop              code findings buffered
+            │ all AC pass              │ all DAC pass                     │ analysis done
+            └──────────────────────────┴──────────────────────────────────┘
+                                       ▼
+                       ┌──────────────────────────┐   medium/show-stopper?
+                       │  Back Tracker Phase 2    │────────────► user (guidance)
+                       │  (final verdict)         │   minor → auto-loop (max 3×)
+                       └──────────────┬───────────┘
+                                      │ approved
+                                      ▼
+                                 Pull Request
 ```
 
 ---
@@ -137,23 +131,23 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 ## Agents
 
-| Agent | File | Role |
-|-------|------|------|
-| **Orchestrator** | `.github/agents/orchestrator.agent.md` | Coordinates the full pipeline, manages approvals and loops |
-| **Requirements** | `.github/agents/requirements-agent.agent.md` | Analyses inputs, detects gaps, produces options with confidence ratings |
-| **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility |
-| **Planning** | `.github/agents/planning-agent.agent.md` | Architecture, data model, API spec, implementation sequence |
-| **Performance** | `.github/agents/performance-agent.agent.md` | Vets the plan for compute/memory/network/DB/concurrency bottlenecks; escalates medium/critical issues to human |
-| **Security** | `.github/agents/security-agent.agent.md` | OWASP Top 10, CVE checks, trust boundaries, fix recommendations |
-| **Coding** | `.github/agents/coding-agent.agent.md` | Full-stack implementation via language-specific subagents |
-| **Linting** | `.github/agents/linting-agent.agent.md` | Runs project lint/format tools, auto-fixes issues, delegates unfixable violations to coding agent |
-| **Tester** | `.github/agents/tester-agent.agent.md` | Unit + integration tests, ≥80% coverage, failure loop with coding |
-| **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes |
-| **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval |
-| **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval |
-| **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end; loops back through the pipeline when gaps are found |
-| **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment faithfully implements every Design DAC; runs in parallel with the E2E agent; loops with coding on failures, escalates to human after 3 unresolved DACs |
-| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Two-phase final gate — Phase 1 (code analysis) runs in parallel with E2E + Design Review; Phase 2 (final verdict) combines all results. Auto-routes minor deviations, escalates medium/show-stopper to human |
+| Agent | File | Role | Stage |
+|-------|------|------|-------|
+| **Orchestrator** | `.github/agents/orchestrator.agent.md` | Coordinates the pipeline, applies fast-lane rules, manages all approvals and loops | Entry point |
+| **Refinement** | `.github/agents/refinement-agent.agent.md` | Analyses inputs, detects gaps, produces a refined unambiguous ticket | 1 |
+| **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility — skipped on non-UI lanes | 2 |
+| **Planning** | `.github/agents/planning-agent.agent.md` | Architecture, data model, API spec, implementation sequence | 3 |
+| **Performance** | `.github/agents/performance-agent.agent.md` | Vets plan for compute/memory/network/DB/concurrency bottlenecks; escalates medium/critical to human | 4 (parallel with Security) |
+| **Security** | `.github/agents/security-agent.agent.md` | OWASP Top 10, CVE checks, trust boundaries, fix recommendations | 4 (parallel with Performance) |
+| **Coding** | `.github/agents/coding-agent.agent.md` | Full-stack implementation via language-specific subagents | 5 |
+| **Linting** | `.github/agents/linting-agent.agent.md` | Runs project lint/format tools, auto-fixes issues, delegates unfixable violations to coding agent | 6 |
+| **Tester** | `.github/agents/tester-agent.agent.md` | Unit + integration tests, ≥80% coverage, failure loop with coding | 7 |
+| **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes | 8 (can overlap Build) |
+| **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval | 9 |
+| **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval | 10 |
+| **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end | 11 (parallel) |
+| **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment implements every Design DAC; skipped on non-UI lanes | 11 (parallel, UI lanes only) |
+| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Two-phase final gate — Phase 1 code analysis runs in parallel with E2E; Phase 2 combines all results | 11 Phase 1 (parallel) → 12 Phase 2 |
 
 ---
 
