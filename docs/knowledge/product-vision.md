@@ -1,6 +1,6 @@
 # Product Vision
 
-> **Fill this in.** The requirements agent reads this on every pipeline run to ensure all work aligns with your product's purpose. Keep it honest and up to date — vague vision produces vague requirements.
+> **Fill this in.** The refinement agent reads this on every pipeline run to ensure all work aligns with your product's purpose. Keep it honest and up to date — vague vision produces vague requirements.
 
 ---
 

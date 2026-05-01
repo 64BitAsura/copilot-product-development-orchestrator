@@ -155,7 +155,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 Each agent reads specific files from `docs/knowledge/` on every pipeline run. The table below shows which files each agent depends on and why.
 
-### Requirements Agent
+### Refinement Agent
 | File | Why |
 |------|-----|
 | `product-vision.md` | Understand purpose, users, and success metrics |
@@ -318,7 +318,7 @@ docs/knowledge/
 ├── security-best-practices.md # Security patterns (agents append findings here)
 ├── testing-guidelines.md      # Test standards (agents append framework patterns here)
 │
-├── requirements/              # Requirements agent's knowledge base
+├── requirements/              # Refinement agent's knowledge base
 │   ├── README.md
 │   ├── requirement-template.md
 │   ├── gap-analysis-checklist.md
@@ -354,7 +354,7 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ```
 .copilot/pipeline/
 ├── state.md                     # Current stage, status, session ID
-├── requirements.md              # Requirements agent output
+├── requirements.md              # Refinement agent output
 ├── design.md                    # Design agent output
 ├── design-ac.md                 # Design acceptance criteria (verified by design-review-agent)
 ├── planning.md                  # Planning agent output
