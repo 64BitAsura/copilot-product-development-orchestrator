@@ -37,7 +37,7 @@ Transform a GitHub issue or feature request into a fully implemented, tested, an
 You coordinate the following specialized agents in strict sequence. Each agent writes its outputs to the pipeline state directory (`.copilot/pipeline/`), which subsequent agents read.
 
 ```
-[Input] → Requirements Agent → Design Agent → Planning Agent → Performance Agent
+[Input] → Refinement Agent → Design Agent → Planning Agent → Performance Agent
        → Security Agent → Coding Agent → Linting Agent → Tester Agent
        → Documentation Agent → Build Agent → Local Deployment Agent
        → E2E Agent ──────────────┐
@@ -89,12 +89,12 @@ Before invoking any agent:
 
 ### 1. Requirements Analysis
 
-Invoke `requirements-agent` with:
+Invoke `refinement-agent` with:
 - The main input (issue body or prompt)
 - All reference inputs
 - Path to pipeline state file
 
-Wait for the requirements agent to complete and write its output to `.copilot/pipeline/requirements.md`.
+Wait for the refinement agent to complete and write its output to `.copilot/pipeline/requirements.md`.
 
 **User checkpoint**: Present the requirements output. Ask: _"Do you approve these requirements, or would you like changes? (approve / revise: [your feedback])"_
 
@@ -416,8 +416,8 @@ Orchestrator:
 🔄 Starting pipeline...
 
 🔍 Stage 1: Requirements Analysis
-Invoking @requirements-agent...
-[requirements agent output presented]
+Invoking @refinement-agent...
+[refinement agent output presented]
 ❓ Do you approve these requirements?
 
 User: approve
