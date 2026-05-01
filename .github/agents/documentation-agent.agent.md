@@ -235,7 +235,7 @@ Write output to `.copilot/pipeline/documentation.md`:
 4. **Implementation notes are for engineers** — write for someone joining the team in 6 months.
 5. **OpenAPI examples must use realistic data** — not `"string"` or `"example"`.
 6. **Do not modify production code or tests** — only documentation files.
-7. After completing documentation, **update pipeline state**: `Current Stage: complete`, `Status: completed`.
+7. After completing documentation, **update pipeline state**: `Current Stage: build`.
 
 ---
 
