@@ -134,7 +134,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | Agent | File | Role | Stage |
 |-------|------|------|-------|
 | **Orchestrator** | `.github/agents/orchestrator.agent.md` | Coordinates the pipeline, applies fast-lane rules, manages all approvals and loops | Entry point |
-| **Requirements** | `.github/agents/refinement-agent.agent.md` | Analyses inputs, detects gaps, produces a refined unambiguous ticket | 1 |
+| **Refinement** | `.github/agents/refinement-agent.agent.md` | Analyses inputs, detects gaps, produces a refined unambiguous ticket | 1 |
 | **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility — skipped on non-UI lanes | 2 |
 | **Planning** | `.github/agents/planning-agent.agent.md` | Architecture, data model, API spec, implementation sequence | 3 |
 | **Performance** | `.github/agents/performance-agent.agent.md` | Vets plan for compute/memory/network/DB/concurrency bottlenecks; escalates medium/critical to human | 4 (parallel with Security) |

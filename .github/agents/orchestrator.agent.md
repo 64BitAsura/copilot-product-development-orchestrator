@@ -464,6 +464,8 @@ Invoking @refinement-agent...
 
 User: approve
 
+⏭️ Stage 2: Design — skipped (lane: backend — no UI/UX changes in scope)
+
 🏗️ Stage 3: Technical Planning
 Invoking @planning-agent...
 [planning agent output presented — 2 options]
