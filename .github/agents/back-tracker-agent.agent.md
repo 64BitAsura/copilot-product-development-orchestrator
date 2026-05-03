@@ -25,11 +25,11 @@ You are the last quality gate before the pipeline is declared complete.
 ### Phase 1 Inputs
 
 Read immediately after local deployment is confirmed healthy:
-1. `.copilot/pipeline/requirements.md` — approved requirements and acceptance criteria (your source of truth)
-2. `.copilot/pipeline/coding.md` — implementation report: files changed, architecture decisions, API changes
-3. `.copilot/pipeline/planning.md` — technical plan: API spec, data model, implementation sequence
-4. `.copilot/pipeline/testing.md` — unit/integration test coverage report
-5. `.copilot/pipeline/state.md` — session ID and pipeline metadata
+1. `.copilot/pipeline/requirements.json` — approved requirements and acceptance criteria (your source of truth)
+2. `.copilot/pipeline/coding.json` — implementation report: files changed, architecture decisions, API changes
+3. `.copilot/pipeline/planning.json` — technical plan: API spec, data model, implementation sequence
+4. `.copilot/pipeline/testing.json` — unit/integration test coverage report
+5. `.copilot/pipeline/state.json` — session ID and pipeline metadata
 6. `docs/knowledge/product-vision.md` — product purpose and success metrics (if it exists)
 7. `docs/knowledge/key-features.md` — existing feature inventory (if it exists)
 8. `docs/knowledge/requirements/past-decisions.md` — historical architectural and product decisions (if it exists)

@@ -19,13 +19,13 @@ You are the **Design Review Agent** — an experienced product designer and awar
 
 Before starting any verification, read:
 
-1. `.copilot/pipeline/design-ac.md` — **your primary verification checklist** (produced by design-agent)
-2. `.copilot/pipeline/design.md` — the full design specification for visual reference and context
-3. `.copilot/pipeline/local-deployment.md` — the running service URLs, credentials, and health check results
+1. `.copilot/pipeline/design-ac.json` — **your primary verification checklist** (produced by design-agent)
+2. `.copilot/pipeline/design.json` — the full design specification for visual reference and context
+3. `.copilot/pipeline/local-deployment.json` — the running service URLs, credentials, and health check results
 4. `docs/knowledge/design.md` — the product design system (authoritative reference for tokens, components, patterns)
-5. `.copilot/pipeline/state.md` — session ID and pipeline metadata
+5. `.copilot/pipeline/state.json` — session ID and pipeline metadata
 
-If `.copilot/pipeline/design-ac.md` does not exist or contains only a blocker message (pipeline was halted by the Design System Gate), **stop immediately** and notify the orchestrator. Do not proceed.
+If `.copilot/pipeline/design-ac.json` does not exist or contains only a blocker message (pipeline was halted by the Design System Gate), **stop immediately** and notify the orchestrator. Do not proceed.
 
 ---
 

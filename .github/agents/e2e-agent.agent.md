@@ -19,14 +19,14 @@ You use real tools: a web browser, CLI commands, database clients, Docker, appli
 ## Your Inputs
 
 Before planning any tests, read:
-1. `.copilot/pipeline/requirements.md` — the approved requirements and acceptance criteria (your primary specification)
-2. `.copilot/pipeline/local-deployment.md` — running service URLs, credentials, health check results
-3. `.copilot/pipeline/coding.md` — what was changed, which endpoints/features were implemented
-4. `.copilot/pipeline/testing.md` — unit/integration test results (context, not your scope)
-5. `.copilot/pipeline/planning.md` — data models and API specifications
-6. `.copilot/pipeline/state.md` — session ID and pipeline metadata
+1. `.copilot/pipeline/requirements.json` — the approved requirements and acceptance criteria (your primary specification)
+2. `.copilot/pipeline/local-deployment.json` — running service URLs, credentials, health check results
+3. `.copilot/pipeline/coding.json` — what was changed, which endpoints/features were implemented
+4. `.copilot/pipeline/testing.json` — unit/integration test results (context, not your scope)
+5. `.copilot/pipeline/planning.json` — data models and API specifications
+6. `.copilot/pipeline/state.json` — session ID and pipeline metadata
 7. `docs/knowledge/testing-guidelines.md` — test standards (if it exists)
-8. `.copilot/pipeline/e2e-test-plan.md` — previously approved E2E test plan (if it exists, reuse and extend)
+8. `.copilot/pipeline/e2e-test-plan.json` — previously approved E2E test plan (if it exists, reuse and extend)
 
 ---
 
@@ -87,7 +87,7 @@ For simple scenarios, proceed directly to Phase 3.
 
 ### Phase 3 — Execute Tests
 
-Use the running environment from `.copilot/pipeline/local-deployment.md`.
+Use the running environment from `.copilot/pipeline/local-deployment.json`.
 
 For each scenario, execute and record:
 
@@ -110,7 +110,7 @@ docker logs <app_container> --tail 50
 
 **Execution principles:**
 - Test against the live running environment — never mock in E2E tests
-- Use real credentials from `.env` / `.copilot/pipeline/local-deployment.md`
+- Use real credentials from `.env` / `.copilot/pipeline/local-deployment.json`
 - Capture full request/response pairs for the test report
 - Verify DB state after write operations
 - Check application logs for unexpected errors after each scenario
@@ -129,21 +129,23 @@ After executing all scenarios:
 
 ### Phase 5 — Document the Test Plan
 
-Regardless of outcome, write the approved test plan to `.copilot/pipeline/e2e-test-plan.md` for future reference:
+Regardless of outcome, write the approved test plan to `.copilot/pipeline/e2e-test-plan.json` for future reference:
 
-```markdown
-# E2E Test Plan
-
-**Feature**: <feature name>
-**Approved**: <ISO timestamp>
-**Session ID**: <from pipeline state>
-
-## Scenarios
-
-| ID | Description | Type | Acceptance Criterion | Status |
-|----|------------|------|---------------------|--------|
-| EJ-001 | [description] | Journey | AC-001 | ✅ PASS / ❌ FAIL |
-...
+```json
+{
+  "feature": "<feature name>",
+  "approved": "<ISO timestamp>",
+  "session_id": "<from pipeline state>",
+  "scenarios": [
+    {
+      "id": "EJ-001",
+      "description": "<description>",
+      "type": "journey | api | data | integration | negative | non_functional",
+      "acceptance_criterion": "AC-001",
+      "status": "PASS | FAIL | SKIP"
+    }
+  ]
+}
 ```
 
 ### Phase 6 — Handle Failures
@@ -174,79 +176,68 @@ Regardless of outcome, write the approved test plan to `.copilot/pipeline/e2e-te
 
 ## Output
 
-> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/e2e-testing.md` and `.copilot/pipeline/e2e-test-plan.md`. Do NOT write JSON.
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/e2e-testing.json` and `.copilot/pipeline/e2e-test-plan.json`. Do NOT write Markdown.
 
-Write complete output to `.copilot/pipeline/e2e-testing.md`:
+Write complete output to `.copilot/pipeline/e2e-testing.json`:
 
-```markdown
-# E2E Testing Report
-
-**Session ID**: <from pipeline state>
-**Feature**: <feature name>
-**Date**: <ISO timestamp>
-**Environment**: <base URL and deployment details>
-**Overall Result**: ✅ ALL PASSED | ⚠️ PARTIAL | ❌ FAILED
-
-## Summary
-
-| Category | Total | Passed | Failed | Skipped |
-|---------|-------|--------|--------|---------|
-| User Journey | N | N | N | N |
-| API Contract | N | N | N | N |
-| Data Persistence | N | N | N | N |
-| Integration | N | N | N | N |
-| Negative / Error | N | N | N | N |
-| Non-Functional | N | N | N | N |
-| **Total** | **N** | **N** | **N** | **N** |
-
-## Requirements Coverage
-
-| Acceptance Criterion | Scenarios | Result |
-|---------------------|----------|--------|
-| AC-001: [description] | EJ-001, EA-002 | ✅ / ❌ |
-
-## Scenario Results
-
-### ✅ EJ-001 — [Scenario Name]
-
-**Maps to**: AC-001
-**Steps**:
-1. [Step] → [Result]
-2. [Step] → [Result]
-**Evidence**: [curl output / screenshot path / log snippet]
-**DB State**: [relevant query result if applicable]
-
----
-
-### ❌ EJ-002 — [Scenario Name]
-
-**Maps to**: AC-002
-**Steps**:
-1. [Step] → [Result]
-**Failure**: [Expected X, got Y]
-**Evidence**: [full request/response/log]
-**Root Cause**: [analysis]
-**Gap Classification**: Minor / Medium / Show-stopper
-**Sent to orchestrator**: yes/no
-
----
-
-## Remedy Loop History
-
-| Loop | Scenarios Re-run | Outcome | Agents Triggered |
-|------|-----------------|---------|-----------------|
-| 1 | EJ-002, EA-001 | ❌ still failing | coding-agent, build-agent |
-| 2 | EJ-002, EA-001 | ✅ passed | — |
-
-## Gaps Reported to Orchestrator
-
-> Items the orchestrator must route to the appropriate agents:
-
-- [Gap description] → [Suggested agent(s) to fix]
-
-## Test Plan Reference
-
-See `.copilot/pipeline/e2e-test-plan.md` for the full approved test plan.
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name>",
+  "date": "<ISO timestamp>",
+  "environment": "<base URL and deployment details>",
+  "overall_result": "ALL_PASSED | PARTIAL | FAILED",
+  "summary": {
+    "user_journey":    { "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "api_contract":    { "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "data_persistence":{ "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "integration":     { "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "negative_error":  { "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "non_functional":  { "total": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "total":           { "total": 0, "passed": 0, "failed": 0, "skipped": 0 }
+  },
+  "requirements_coverage": [
+    {
+      "acceptance_criterion": "AC-001",
+      "description": "<description>",
+      "scenarios": ["EJ-001", "EA-002"],
+      "result": "PASS | FAIL"
+    }
+  ],
+  "scenario_results": [
+    {
+      "id": "EJ-001",
+      "name": "<Scenario Name>",
+      "maps_to": "AC-001",
+      "status": "PASS | FAIL",
+      "steps": [
+        { "step": "<action>", "result": "<outcome>" }
+      ],
+      "evidence": "<curl output or screenshot path or log snippet>",
+      "db_state": "<relevant query result if applicable>",
+      "failure_details": {
+        "expected": "<expected>",
+        "actual": "<actual>",
+        "evidence": "<full request/response/log>",
+        "root_cause": "<analysis>",
+        "gap_classification": "minor | medium | show_stopper",
+        "sent_to_orchestrator": false
+      }
+    }
+  ],
+  "remedy_loop_history": [
+    {
+      "loop": 1,
+      "scenarios_rerun": ["EJ-002"],
+      "outcome": "still_failing | passed",
+      "agents_triggered": ["coding-agent"]
+    }
+  ],
+  "gaps_reported_to_orchestrator": [
+    { "gap": "<description>", "suggested_agents": ["<agent>"] }
+  ],
+  "test_plan_reference": ".copilot/pipeline/e2e-test-plan.json"
+}
 ```
 
 ---
