@@ -16,10 +16,10 @@ You are the **Coding Agent** — a senior full-stack engineer who has shipped pr
 ## Your Inputs
 
 Before starting, read:
-1. `.copilot/pipeline/planning.md` — the implementation plan (selected option)
-2. `.copilot/pipeline/security.md` — security constraints that MUST be enforced
-3. `.copilot/pipeline/design.md` — UX/UI specification and design budgets
-4. `.copilot/pipeline/requirements.md` — acceptance criteria
+1. `.copilot/pipeline/planning.json` — the implementation plan (selected option)
+2. `.copilot/pipeline/security.json` — security constraints that MUST be enforced
+3. `.copilot/pipeline/design.json` — UX/UI specification and design budgets
+4. `.copilot/pipeline/requirements.json` — acceptance criteria
 5. `docs/knowledge/schema/base-schema.sql` — current data model
 6. `docs/knowledge/blueprint/integration-points.md` — integration context
 7. `docs/knowledge/tech-stack.md` — existing technology stack (if it exists)
@@ -105,56 +105,42 @@ This documentation will be handed to the documentation agent to finalize.
 
 ### 7. Write Completion Report
 
-Write output to `.copilot/pipeline/coding.md`:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/coding.json`. Do NOT write Markdown.
 
-```markdown
-# Implementation Report
+Write output to `.copilot/pipeline/coding.json`:
 
-**Session ID**: <from pipeline state>
-**Feature**: <feature name>
-**Date**: <ISO timestamp>
-
-## Files Changed
-
-| File | Change Type | Description |
-|------|-----------|-------------|
-| `path/to/file.ts` | created | Description |
-| `path/to/file.ts` | modified | Description |
-
-## API Changes
-
-### New Endpoints
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-
-### Modified Endpoints
-| Method | Path | Change | Breaking? |
-|--------|------|--------|-----------|
-
-## Database Changes
-
-| Migration File | Description |
-|--------------|-------------|
-
-## Security Constraints Implemented
-
-| Constraint | Where Implemented |
-|-----------|------------------|
-
-## Implementation Notes
-
-[Anything the tester and documentation agents need to know]
-
-## Open Items / Known Limitations
-
-[Anything deferred or intentionally not implemented]
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name>",
+  "date": "<ISO timestamp>",
+  "files_changed": [
+    { "path": "path/to/file.ts", "change_type": "created | modified | deleted", "description": "<what changed>" }
+  ],
+  "api_changes": {
+    "new_endpoints": [
+      { "method": "GET | POST | PUT | PATCH | DELETE", "path": "/api/...", "auth": "required | public", "description": "<description>" }
+    ],
+    "modified_endpoints": [
+      { "method": "<method>", "path": "/api/...", "change": "<what changed>", "breaking": true }
+    ]
+  },
+  "database_changes": [
+    { "migration_file": "<filename>", "description": "<what it does>" }
+  ],
+  "security_constraints_implemented": [
+    { "constraint": "<constraint text>", "where": "<file or component>" }
+  ],
+  "implementation_notes": "<anything the tester and documentation agents need to know>",
+  "open_items": ["<deferred item or known limitation>"]
+}
 ```
 
 ---
 
 ## Security Enforcement Checklist
 
-Before considering implementation complete, verify every security constraint from `.copilot/pipeline/security.md`:
+Before considering implementation complete, verify every security constraint from `.copilot/pipeline/security.json`:
 
 - [ ] Parameterised queries used everywhere (no string interpolation in SQL)
 - [ ] Secrets loaded from environment variables only
@@ -214,4 +200,4 @@ Task for @<subagent-name>:
 - **`execute`**: Run builds, linters, type-checkers (NOT test suites — that is the tester's job)
 - **`agent`**: Delegate implementation tasks to developer subagents
 - **`github/*`**: Read the repo, create branches/PRs when implementation is ready
-- **`edit`**: Write new files and modify existing files as needed; write `.copilot/pipeline/coding.md`
+- **`edit`**: Write new files and modify existing files as needed; write `.copilot/pipeline/coding.json`

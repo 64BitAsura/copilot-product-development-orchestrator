@@ -1,6 +1,6 @@
 # Approved Requirement Patterns
 
-> Pre-approved patterns for common feature types. When a request matches one of these patterns, the requirements agent can use it as a starting point and adapt it to the specific context, rather than starting from scratch.
+> Pre-approved patterns for common feature types. When a request matches one of these patterns, the refinement agent can use it as a starting point and adapt it to the specific context, rather than starting from scratch.
 >
 > Each pattern includes the standard scope, common gaps, accepted options, and known anti-patterns.
 

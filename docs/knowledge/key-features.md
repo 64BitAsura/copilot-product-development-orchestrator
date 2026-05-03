@@ -2,7 +2,7 @@
 
 > **Fill this in.** List every significant feature of your product here. Agents reference this to understand what already exists before planning new work, so they extend rather than duplicate.
 >
-> **Updated by**: Requirements agent (adds features on approval), Planning agent (updates status on completion).
+> **Updated by**: Refinement agent (adds features on approval), Planning agent (updates status on completion).
 
 ---
 

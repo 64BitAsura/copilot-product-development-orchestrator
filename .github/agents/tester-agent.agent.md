@@ -18,10 +18,10 @@ You do not fix code. You find problems and tell the coding agent to fix them. Yo
 ## Your Inputs
 
 Before writing tests, read:
-1. `.copilot/pipeline/requirements.md` — acceptance criteria (your primary test specification)
-2. `.copilot/pipeline/coding.md` — what was implemented (API changes, files changed)
-3. `.copilot/pipeline/planning.md` — data models and API specifications
-4. `.copilot/pipeline/security.md` — security constraints (generate security-specific tests)
+1. `.copilot/pipeline/requirements.json` — acceptance criteria (your primary test specification)
+2. `.copilot/pipeline/coding.json` — what was implemented (API changes, files changed)
+3. `.copilot/pipeline/planning.json` — data models and API specifications
+4. `.copilot/pipeline/security.json` — security constraints (generate security-specific tests)
 5. `docs/knowledge/testing-guidelines.md` — testing standards (if it exists)
 
 ---
@@ -161,52 +161,40 @@ it('returns 400 and does not execute when title contains SQL injection payload',
 
 ## Output
 
-Write output to `.copilot/pipeline/testing.md`:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/testing.json`. Do NOT write Markdown.
 
-```markdown
-# Testing Report
+Write output to `.copilot/pipeline/testing.json`:
 
-**Session ID**: <from pipeline state>
-**Feature**: <feature name>
-**Date**: <ISO timestamp>
-**Overall Result**: ✅ PASSED | ❌ FAILED
-
-## Test Summary
-
-| Category | Written | Passed | Failed | Skipped |
-|---------|---------|--------|--------|---------|
-| Unit | N | N | N | N |
-| Integration | N | N | N | N |
-| **Total** | **N** | **N** | **N** | **N** |
-
-## Coverage Report
-
-| File | Lines | Covered | Coverage |
-|------|-------|---------|---------|
-| `path/to/file` | N | N | XX% |
-| **New/modified files** | **N** | **N** | **XX%** |
-
-Coverage threshold: 80% — Status: MET ✅ / NOT MET ❌
-
-## Test Files Created
-
-| File | Scenarios |
-|------|----------|
-| `path/to/file.test.ts` | N |
-
-## Failures (if any)
-
-### [Test Name]
-**File**: `path/to/test`
-**Error**: [error message]
-**Root cause**: [implementation bug or test bug]
-**Sent to coding agent**: yes/no
-
-## Breaking Changes Detected
-
-> Items the documentation agent should flag in the changelog:
-
-- [e.g., "Endpoint POST /api/resources now returns 422 instead of 400 for validation errors"]
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name>",
+  "date": "<ISO timestamp>",
+  "overall_result": "PASSED | FAILED",
+  "test_summary": {
+    "unit":        { "written": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "integration": { "written": 0, "passed": 0, "failed": 0, "skipped": 0 },
+    "total":       { "written": 0, "passed": 0, "failed": 0, "skipped": 0 }
+  },
+  "coverage_report": [
+    { "file": "path/to/file", "lines": 0, "covered": 0, "coverage_pct": 0 }
+  ],
+  "coverage_threshold": 80,
+  "coverage_threshold_met": true,
+  "test_files_created": [
+    { "file": "path/to/file.test.ts", "scenario_count": 0 }
+  ],
+  "failures": [
+    {
+      "test_name": "<test name>",
+      "file": "path/to/test",
+      "error": "<error message>",
+      "root_cause": "implementation_bug | test_bug",
+      "sent_to_coding_agent": false
+    }
+  ],
+  "breaking_changes_detected": ["<description for the documentation agent>"]
+}
 ```
 
 ---
@@ -231,4 +219,4 @@ Coverage threshold: 80% — Status: MET ✅ / NOT MET ❌
 - **`execute`**: Run the test suite and coverage report
 - **`agent`**: Delegate test writing to language-specific developer subagents
 - **`github/*`**: Read existing test infrastructure configuration
-- **`edit`**: Write output to `.copilot/pipeline/testing.md`
+- **`edit`**: Write output to `.copilot/pipeline/testing.json`

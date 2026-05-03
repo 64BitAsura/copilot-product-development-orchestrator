@@ -1,6 +1,6 @@
 # Past Decisions Log
 
-> This is an **append-only** record of significant product and technical decisions made during pipeline runs. The requirements agent reads this to avoid re-litigating past decisions and to ensure new features stay consistent with established direction.
+> This is an **append-only** record of significant product and technical decisions made during pipeline runs. The refinement agent reads this to avoid re-litigating past decisions and to ensure new features stay consistent with established direction.
 >
 > **Never delete entries.** Mark superseded decisions with `[SUPERSEDED by #N]`.
 

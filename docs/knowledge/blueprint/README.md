@@ -1,6 +1,6 @@
 # Blueprint
 
-> The blueprint is the **single source of truth for how all features, requirements, and domains fit together** as a coherent product. It is the big picture that the requirements agent, planning agent, and design agent all consult before making decisions.
+> The blueprint is the **single source of truth for how all features, requirements, and domains fit together** as a coherent product. It is the big picture that the refinement agent, planning agent, and design agent all consult before making decisions.
 >
 > Think of it as the product's architectural blueprint — like the master drawing on a construction site that every subcontractor refers to.
 
@@ -21,7 +21,7 @@
 
 ## How Agents Use the Blueprint
 
-### Requirements Agent
+### Refinement Agent
 - Reads `feature-map.md` to check if a requested feature already exists (fully or partially)
 - Reads `domain-model.md` to ensure new requirements use the correct domain language
 - Reads `integration-points.md` to identify dependencies and affected systems
@@ -48,7 +48,7 @@
 1. **No agent modifies the blueprint without updating the relevant section.** After every pipeline run, the feature map must be updated.
 2. **The domain model is append-first.** New entities are added; existing entities are modified only with strong justification (domain model changes are breaking).
 3. **Integration points must be kept current.** Any new service-to-service call, MCP integration, or external API dependency must be added to `integration-points.md`.
-4. **The evolution roadmap is owned by the requirements agent.** Only approved user decisions update it.
+4. **The evolution roadmap is owned by the refinement agent.** Only approved user decisions update it.
 5. **The blueprint is source-controlled.** Its history tells the story of how the product evolved.
 
 ---

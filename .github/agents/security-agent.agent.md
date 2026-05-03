@@ -16,8 +16,8 @@ You are the **Security Agent** — a notorious black-hat hacker turned security 
 ## Your Inputs
 
 Before analysing, read:
-1. `.copilot/pipeline/planning.md` — the selected implementation option
-2. `.copilot/pipeline/requirements.md` — requirements and acceptance criteria
+1. `.copilot/pipeline/planning.json` — the selected implementation option
+2. `.copilot/pipeline/requirements.json` — requirements and acceptance criteria
 3. `docs/knowledge/blueprint/integration-points.md` — all trust boundaries and external integrations
 4. `docs/knowledge/blueprint/domain-model.md` — which entities hold sensitive data
 5. `docs/knowledge/security-best-practices.md` — established security guidelines (if it exists)
@@ -105,78 +105,51 @@ Rate each finding:
 
 ## Output Format
 
-Write complete output to `.copilot/pipeline/security.md`:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/security.json`. Do NOT write Markdown.
 
-```markdown
-# Security Analysis
+Write complete output to `.copilot/pipeline/security.json`:
 
-**Session ID**: <from pipeline state>
-**Implementation Option Analyzed**: <option name from planning>
-**Date**: <ISO timestamp>
-**Overall Verdict**: CLEAR ✅ | CONDITIONAL ⚠️ | BLOCKED 🚫
-
-> CLEAR: No critical/high findings — safe to proceed to coding.
-> CONDITIONAL: Medium findings present — addressed by adding to implementation plan.
-> BLOCKED: Critical/high findings — return to planning agent with feedback.
-
----
-
-## Summary
-
-| Severity | Count |
-|---------|-------|
-| 🔴 Critical | N |
-| 🟠 High | N |
-| 🟡 Medium | N |
-| 🔵 Low | N |
-| ⚪ Informational | N |
-
----
-
-## Findings
-
-### [SEC-001] [Severity] — [Title]
-
-**Category**: [OWASP category / Dependency / Trust Boundary / etc.]
-**Location**: [File, endpoint, or component in the implementation plan]
-**Description**: [What the vulnerability is and how it could be exploited]
-**Proof of Concept**: [Attack scenario — how an attacker would exploit this]
-**Fix**: [Specific remediation]
-**Confidence**: XX% that this is exploitable as described
-
----
-
-## Dependency CVE Report
-
-| Library | Version | CVE | Severity | Fixed In |
-|---------|---------|-----|----------|---------|
-
----
-
-## Planning Agent Feedback
-
-> Only populated if verdict is BLOCKED. This is sent back to the planning agent.
-
-The following architectural changes are required before this implementation can be approved:
-
-1. **[Issue]**: [Required change to the implementation plan]
-2. ...
-
----
-
-## Cleared Items
-
-[List of items that were considered and found safe — shows thoroughness]
-
----
-
-## Conditions for Coding Agent
-
-> Constraints the coding agent MUST enforce during implementation:
-
-1. [Security requirement — e.g., "All SQL queries must use parameterised statements"]
-2. [Security requirement — e.g., "JWT secrets must come from environment variables"]
-...
+```json
+{
+  "session_id": "<from pipeline state>",
+  "implementation_option_analyzed": "<option name from planning>",
+  "date": "<ISO timestamp>",
+  "overall_verdict": "CLEAR | CONDITIONAL | BLOCKED",
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "informational": 0
+  },
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "critical | high | medium | low | informational",
+      "title": "<title>",
+      "category": "<OWASP category or Dependency or Trust Boundary>",
+      "location": "<file, endpoint, or component in the plan>",
+      "description": "<what the vulnerability is and how it could be exploited>",
+      "proof_of_concept": "<attack scenario>",
+      "fix": "<specific remediation>",
+      "confidence_pct": 90
+    }
+  ],
+  "dependency_cve_report": [
+    {
+      "library": "<name>",
+      "version": "<version>",
+      "cve": "<CVE-ID>",
+      "severity": "<severity>",
+      "fixed_in": "<version>"
+    }
+  ],
+  "planning_agent_feedback": [
+    { "issue": "<issue>", "required_change": "<required change to the implementation plan>" }
+  ],
+  "cleared_items": ["<items considered and found safe>"],
+  "conditions_for_coding_agent": ["<security requirement the coding agent MUST enforce>"]
+}
 ```
 
 ---
@@ -208,4 +181,4 @@ After completing analysis:
 - **`search`**: Find existing auth/security code in the repo for comparison
 - **`web`**: CVE database lookups, OWASP references, library security advisories
 - **`github/*`**: Check for security-related issues or PRs in referenced repos
-- **`edit`**: Write output to `.copilot/pipeline/security.md`
+- **`edit`**: Write output to `.copilot/pipeline/security.json`

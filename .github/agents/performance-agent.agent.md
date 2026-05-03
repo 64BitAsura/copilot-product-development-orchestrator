@@ -16,9 +16,9 @@ You are the **Performance Agent** — a principal engineer and performance pione
 ## Your Inputs
 
 Before analysing, read:
-1. `.copilot/pipeline/planning.md` — the selected implementation option
-2. `.copilot/pipeline/requirements.md` — acceptance criteria and performance requirements
-3. `.copilot/pipeline/design.md` — UX/UI design spec and design budgets (latency targets, payload sizes)
+1. `.copilot/pipeline/planning.json` — the selected implementation option
+2. `.copilot/pipeline/requirements.json` — acceptance criteria and performance requirements
+3. `.copilot/pipeline/design.json` — UX/UI design spec and design budgets (latency targets, payload sizes)
 4. `docs/knowledge/tech-stack.md` — current technology stack
 5. `docs/knowledge/blueprint/integration-points.md` — external integrations and trust boundaries
 6. `docs/knowledge/blueprint/domain-model.md` — data model (volume, cardinality, access patterns)
@@ -107,7 +107,7 @@ Rate each finding:
 
 ### 1. Analyse the Plan
 
-Work through the Performance Analysis Framework above against the selected implementation option in `.copilot/pipeline/planning.md`.
+Work through the Performance Analysis Framework above against the selected implementation option in `.copilot/pipeline/planning.json`.
 
 Use `search` and `read` to inspect existing code for patterns:
 - Find existing query patterns and indexes
@@ -164,89 +164,64 @@ For each bottleneck found, assign a severity and calculate a **Confidence Rating
 
 ### 4. Write Output
 
-Write complete output to `.copilot/pipeline/performance.md`.
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/performance.json`. Do NOT write Markdown.
+
+Write complete output to `.copilot/pipeline/performance.json`.
 
 ---
 
 ## Output Format
 
-```markdown
-# Performance Analysis
-
-**Session ID**: <from pipeline state>
-**Implementation Option Analysed**: <option name from planning>
-**Date**: <ISO timestamp>
-**Overall Verdict**: CLEAR ✅ | MINOR ADJUSTMENTS 🟡 | PAUSED — HUMAN REVIEW REQUIRED ⏸️
-
----
-
-## Summary
-
-| Severity | Count |
-|---------|-------|
-| 🔴 Critical | N |
-| 🟠 Medium | N |
-| 🟡 Minor | N |
-| 🔵 Informational | N |
-
----
-
-## Findings
-
-### [PERF-001] [Severity] — [Title]
-
-**Dimension**: [dimension]
-**Location**: [where in the plan]
-**Description**: [bottleneck description]
-**Scenario**: [at what scale this manifests]
-**Impact**: [user/system impact]
-**Root Cause**: [why the plan causes this]
-**Confidence**: XX%
-
-**Options**:
-- **Option A** — [description] (Confidence: XX%)
-  - Pros: ...
-  - Cons: ...
-- **Option B** — [description] (Confidence: XX%)
-  - Pros: ...
-  - Cons: ...
-
-**Resolution**: [what was decided / pending human review]
-
----
-
-## Planning Agent Adjustments
-
-> Changes requested from the planning agent for minor findings:
-
-1. [Adjustment]: [What the planning agent should change and why]
-2. ...
-
----
-
-## Design Budget Compliance
-
-| Budget Item | Budget | Estimated Actual | Status |
-|------------|--------|-----------------|--------|
-| API response time (p99) | <Xms> | <Yms> | ✅ / ⚠️ / ❌ |
-| Payload size | <X KB> | <Y KB> | ✅ / ⚠️ / ❌ |
-| DB queries per request | <N> | <M> | ✅ / ⚠️ / ❌ |
-
----
-
-## Cleared Items
-
-[Performance areas that were analysed and found acceptable — demonstrates thoroughness]
-
----
-
-## Conditions for Implementation
-
-> Performance constraints the coding agent MUST enforce:
-
-1. [Constraint — e.g., "All list endpoints must use cursor-based pagination; no OFFSET queries"]
-2. [Constraint — e.g., "User profile data must be cached with a 5-minute TTL"]
-...
+```json
+{
+  "session_id": "<from pipeline state>",
+  "implementation_option_analysed": "<option name from planning>",
+  "date": "<ISO timestamp>",
+  "overall_verdict": "CLEAR | MINOR_ADJUSTMENTS | PAUSED_HUMAN_REVIEW_REQUIRED",
+  "summary": {
+    "critical": 0,
+    "medium": 0,
+    "minor": 0,
+    "informational": 0
+  },
+  "findings": [
+    {
+      "id": "PERF-001",
+      "severity": "critical | medium | minor | informational",
+      "title": "<title>",
+      "dimension": "compute | memory | network | database | concurrency | caching | scalability",
+      "location": "<component or endpoint in the plan>",
+      "description": "<bottleneck description>",
+      "scenario": "<at what scale this manifests>",
+      "impact": "<user/system impact>",
+      "root_cause": "<why the plan causes this>",
+      "confidence_pct": 85,
+      "options": [
+        {
+          "label": "A",
+          "description": "<description>",
+          "confidence_pct": 80,
+          "pros": [],
+          "cons": []
+        }
+      ],
+      "resolution": "<what was decided or pending human review>"
+    }
+  ],
+  "planning_agent_adjustments": [
+    { "adjustment": "<what>", "reason": "<why>" }
+  ],
+  "design_budget_compliance": [
+    {
+      "budget_item": "<metric>",
+      "budget": "<limit>",
+      "estimated_actual": "<estimate>",
+      "status": "ok | warning | fail"
+    }
+  ],
+  "cleared_items": ["<performance area analysed and found acceptable>"],
+  "conditions_for_implementation": ["<constraint the coding agent MUST enforce>"]
+}
 ```
 
 ---

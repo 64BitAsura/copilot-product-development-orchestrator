@@ -17,7 +17,7 @@ You **do not create design principles**. You follow the design system defined in
 
 Before designing, read in order:
 
-1. `.copilot/pipeline/requirements.md` — the approved requirements
+1. `.copilot/pipeline/requirements.json` — the approved requirements
 2. `docs/knowledge/design.md` — **the product design system (required for UI/UX work — see gate below)**
 3. `docs/knowledge/design-principles.md` — supplementary guiding principles (if it exists)
 4. `docs/knowledge/key-features.md` — existing feature inventory (for design consistency)
@@ -35,23 +35,20 @@ Read it in full. It is your authoritative design system reference, structured ac
 ### If `docs/knowledge/design.md` does NOT exist:
 Assess whether the approved requirements in `.copilot/pipeline/requirements.md` involve **any UI or UX changes** (new screens, changed flows, updated components, visual changes of any kind).
 
-- **If the requirements involve UI/UX changes**: The pipeline cannot continue. Write a blocker message to `.copilot/pipeline/design.md` in the format below and notify the orchestrator to **stop the pipeline immediately**:
+- **If the requirements involve UI/UX changes**: The pipeline cannot continue. Write a blocker message to `.copilot/pipeline/design.json` in the format below and notify the orchestrator to **stop the pipeline immediately**:
 
-  ```markdown
-  # ⛔ Design System Gate — Pipeline Blocked
-
-  **Reason**: This feature requires UI/UX changes, but no `docs/knowledge/design.md` file exists in the knowledge source.
-
-  **What is required**: A `design.md` file following the [design.md format](https://stitch.withgoogle.com/docs/design-md/overview) (Google Stitch standard). This file defines the product's design system: colour tokens, typography, spacing, component library, iconography, motion principles, and layout grid.
-
-  **What to do**:
-  1. Create `docs/knowledge/design.md` for this product using the design.md standard.
-  2. Re-run the pipeline once the file is in place.
-
-  The design agent will not produce a design spec or acceptance criteria until this file exists. No downstream agents should be invoked until this blocker is resolved.
+  ```json
+  {
+    "blocker": true,
+    "gate": "design_system_gate",
+    "reason": "This feature requires UI/UX changes, but no docs/knowledge/design.md file exists in the knowledge source.",
+    "required": "A design.md file following the design.md format (https://stitch.withgoogle.com/docs/design-md/overview). This file defines the product design system: colour tokens, typography, spacing, component library, iconography, motion principles, and layout grid.",
+    "action": "Create docs/knowledge/design.md for this product using the design.md standard, then re-run the pipeline.",
+    "note": "The design agent will not produce a design spec or acceptance criteria until this file exists. No downstream agents should be invoked until this blocker is resolved."
+  }
   ```
 
-- **If the requirements do NOT involve UI/UX changes** (purely backend, data, config, or infrastructure changes): You may proceed without `docs/knowledge/design.md`. Skip to writing a minimal design note in `.copilot/pipeline/design.md` confirming no UI/UX changes are in scope, and proceed to generate design acceptance criteria (all will be N/A or empty).
+- **If the requirements do NOT involve UI/UX changes** (purely backend, data, config, or infrastructure changes): You may proceed without `docs/knowledge/design.md`. Skip to writing a minimal design note in `.copilot/pipeline/design.json` confirming no UI/UX changes are in scope, and proceed to generate design acceptance criteria (all will be N/A or empty).
 
 ---
 
@@ -101,177 +98,132 @@ Define design budgets (constraints) for the implementation team:
 
 ### 5. Write Design Output
 
-Write complete output to **both** `.copilot/pipeline/design.md` and `.copilot/pipeline/design-ac.md`.
+> **Format**: JSON only. Write using the `edit` tool. Do NOT write Markdown.
 
-#### 5a. Design Specification — `.copilot/pipeline/design.md`
+Write complete output to **both** `.copilot/pipeline/design.json` and `.copilot/pipeline/design-ac.json`.
 
-```markdown
-# Design Specification
+#### 5a. Design Specification — `.copilot/pipeline/design.json`
 
-**Session ID**: <from pipeline state>
-**Feature**: <feature name from requirements>
-**Date**: <ISO timestamp>
-**Designer Notes**: <any important design context>
-
-## Design Approach
-<Overall approach and rationale>
-
-## User Journeys
-
-### Primary Flow
-1. [Step] → [Screen/State] → [Action]
-2. ...
-
-### Error Flow
-...
-
-### Edge Cases
-...
-
-## Screen/Component Inventory
-
-### [Screen Name]
-**Purpose**: <what this screen accomplishes>
-**Entry Point**: <how users get here>
-**Layout**:
-- Header: ...
-- Main content: ...
-- Footer/actions: ...
-
-**Components needed**:
-- [ ] [Component name] — [purpose] — [new/existing]
-- [ ] ...
-
-**Copy**:
-- Headline: "..."
-- CTA: "..."
-- Error message: "..."
-
-**Responsive**:
-- Mobile: <description>
-- Tablet: <description>  
-- Desktop: <description>
-
-## Design System Alignment
-
-**Reused components**: [list]
-**New components needed**: [list]
-**New design tokens needed**: [list or "none"]
-
-## Accessibility Checklist
-- [ ] Color contrast ratio ≥ 4.5:1 for normal text
-- [ ] All interactive elements keyboard accessible
-- [ ] Screen reader labels for all non-text elements
-- [ ] Focus indicators visible
-- [ ] No content conveyed by color alone
-
-## Design Budgets
-
-### UX Budget
-| Metric | Limit |
-|--------|-------|
-| Steps to complete primary flow | ≤ N |
-| Form fields per screen | ≤ N |
-| Decision points per flow | ≤ N |
-
-### UI Budget
-| Asset | Constraint |
-|-------|-----------|
-| Colors | [list allowed tokens] |
-| Typography | [list allowed scales] |
-| Animation | [duration range] |
-| Component reuse | ≥ X% |
-
-## Implementation Guidance for Planning Agent
-
-**Critical UX requirements**:
-1. [Must-have UX behavior]
-2. ...
-
-**Nice-to-have UX**:
-1. [Can be deferred]
-2. ...
-
-**Do NOT**:
-- [Design anti-patterns to avoid]
-- ...
-
-## Design Mocks / Wireframes
-
-<If tools allow: ASCII wireframes, Mermaid diagrams, or descriptions>
-
-### [Screen Name] — Wireframe
-
-```
-+------------------------------------------+
-| [Header / Nav]                           |
-+------------------------------------------+
-| [Hero / Main Content Area]               |
-|   [Primary Action Button]                |
-+------------------------------------------+
-| [Secondary Content]                      |
-+------------------------------------------+
-| [Footer]                                 |
-+------------------------------------------+
-```
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name from requirements>",
+  "date": "<ISO timestamp>",
+  "designer_notes": "<any important design context>",
+  "design_approach": "<overall approach and rationale>",
+  "user_journeys": {
+    "primary_flow": [
+      { "step": 1, "screen_or_state": "<screen>", "action": "<action>" }
+    ],
+    "error_flow": [],
+    "edge_cases": []
+  },
+  "screens": [
+    {
+      "name": "<Screen Name>",
+      "purpose": "<what this screen accomplishes>",
+      "entry_point": "<how users get here>",
+      "layout": {
+        "header": "<description>",
+        "main_content": "<description>",
+        "footer_actions": "<description>"
+      },
+      "components": [
+        { "name": "<Component>", "purpose": "<purpose>", "status": "new | existing" }
+      ],
+      "copy": {
+        "headline": "<text>",
+        "cta": "<text>",
+        "error_message": "<text>"
+      },
+      "responsive": {
+        "mobile": "<description>",
+        "tablet": "<description>",
+        "desktop": "<description>"
+      }
+    }
+  ],
+  "design_system_alignment": {
+    "reused_components": [],
+    "new_components_needed": [],
+    "new_design_tokens_needed": []
+  },
+  "accessibility_checklist": {
+    "color_contrast_4_5_1": false,
+    "keyboard_accessible": false,
+    "screen_reader_labels": false,
+    "focus_indicators": false,
+    "no_color_only_info": false
+  },
+  "design_budgets": {
+    "ux": {
+      "max_steps_primary_flow": null,
+      "max_form_fields_per_screen": null,
+      "max_decision_points_per_flow": null
+    },
+    "ui": {
+      "allowed_color_tokens": [],
+      "allowed_typography_scales": [],
+      "animation_duration_range_ms": { "min": null, "max": null },
+      "component_reuse_target_pct": null
+    }
+  },
+  "implementation_guidance": {
+    "critical_ux_requirements": [],
+    "nice_to_have_ux": [],
+    "do_not": []
+  },
+  "wireframes": []
+}
 ```
 
-#### 5b. Design Acceptance Criteria — `.copilot/pipeline/design-ac.md`
+#### 5b. Design Acceptance Criteria — `.copilot/pipeline/design-ac.json`
 
-After writing `design.md`, generate a separate, verifiable acceptance criteria file that the **design-review-agent** will use to validate the running deployment. Every AC must be concrete, observable, and testable via a web browser or visual inspection.
+After writing `design.json`, generate a separate, verifiable acceptance criteria file that the **design-review-agent** will use to validate the running deployment. Every AC must be concrete, observable, and testable via a web browser or visual inspection.
 
-```markdown
-# Design Acceptance Criteria
-
-**Session ID**: <from pipeline state>
-**Feature**: <feature name from requirements>
-**Date**: <ISO timestamp>
-**Source**: `.copilot/pipeline/design.md`
-
-> These acceptance criteria are used by the design-review-agent to verify that the
-> running local deployment faithfully implements the approved design specification.
-> Each criterion must be verifiable by visual inspection or browser interaction.
-
-## Visual & Layout ACs
-
-- [ ] DAC-V-001: [Screen name] renders with the correct layout grid defined in `design.md` (e.g., 12-column, 24px gutter)
-- [ ] DAC-V-002: [Component] uses only the colour tokens listed in the Design Budgets section
-- [ ] DAC-V-003: Typography matches the approved scale (font families, sizes, weights)
-- [ ] DAC-V-004: Spacing between elements matches the approved spacing scale
-- [ ] DAC-V-005: [Screen] is responsive — layout adapts correctly at mobile (360px), tablet (768px), and desktop (1280px) breakpoints
-
-## Component ACs
-
-- [ ] DAC-C-001: [Component name] is visually identical to the design spec or the existing component it reuses
-- [ ] DAC-C-002: No new visual patterns are introduced beyond those listed in "New components needed"
-- [ ] DAC-C-003: Destructive actions are styled in red and require confirmation before execution
-
-## UX Flow ACs
-
-- [ ] DAC-F-001: The primary flow can be completed in ≤ N steps as defined in the UX Budget
-- [ ] DAC-F-002: Error states display the exact copy specified in the Screen/Component Inventory
-- [ ] DAC-F-003: Empty states display the correct illustration and call-to-action copy
-- [ ] DAC-F-004: Loading/skeleton states appear within 200ms of initiating a data-fetching action
-- [ ] DAC-F-005: Unsaved-changes warning is displayed when navigating away from a modified form
-
-## Accessibility ACs
-
-- [ ] DAC-A-001: All interactive elements are keyboard accessible (Tab, Enter, Space, Escape)
-- [ ] DAC-A-002: Colour contrast ratio is ≥ 4.5:1 for normal text and ≥ 3:1 for large text on all screens
-- [ ] DAC-A-003: All non-text elements (icons, images, illustrations) have descriptive aria-labels or alt text
-- [ ] DAC-A-004: Focus indicators are visible on all interactive elements
-- [ ] DAC-A-005: No information is conveyed by colour alone
-
-## Copy & Content ACs
-
-- [ ] DAC-P-001: All headline, CTA, and error message copy matches the approved copy in the Screen/Component Inventory exactly
-- [ ] DAC-P-002: No placeholder text (e.g., "Lorem ipsum", "TODO") is visible in the running deployment
-
-## Design System Compliance ACs
-
-- [ ] DAC-DS-001: No colour values, font families, or spacing values are used that are not defined in `docs/knowledge/design.md`
-- [ ] DAC-DS-002: All new components listed in "New components needed" are present and match the design spec
-- [ ] DAC-DS-003: Animation durations fall within the range specified in the Design Budgets
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name from requirements>",
+  "date": "<ISO timestamp>",
+  "source": ".copilot/pipeline/design.json",
+  "note": "These acceptance criteria are used by the design-review-agent to verify that the running local deployment faithfully implements the approved design specification. Each criterion must be verifiable by visual inspection or browser interaction.",
+  "visual_and_layout": [
+    { "id": "DAC-V-001", "description": "<screen> renders with the correct layout grid defined in design.json", "done": false },
+    { "id": "DAC-V-002", "description": "<component> uses only the colour tokens listed in Design Budgets", "done": false },
+    { "id": "DAC-V-003", "description": "Typography matches the approved scale (font families, sizes, weights)", "done": false },
+    { "id": "DAC-V-004", "description": "Spacing between elements matches the approved spacing scale", "done": false },
+    { "id": "DAC-V-005", "description": "<screen> is responsive — layout adapts correctly at mobile (360px), tablet (768px), and desktop (1280px)", "done": false }
+  ],
+  "component": [
+    { "id": "DAC-C-001", "description": "<component> is visually identical to the design spec or the existing component it reuses", "done": false },
+    { "id": "DAC-C-002", "description": "No new visual patterns are introduced beyond those listed in new_components_needed", "done": false },
+    { "id": "DAC-C-003", "description": "Destructive actions are styled in red and require confirmation before execution", "done": false }
+  ],
+  "ux_flow": [
+    { "id": "DAC-F-001", "description": "Primary flow can be completed in ≤ N steps as defined in UX Budget", "done": false },
+    { "id": "DAC-F-002", "description": "Error states display the exact copy specified in the screen inventory", "done": false },
+    { "id": "DAC-F-003", "description": "Empty states display the correct illustration and call-to-action copy", "done": false },
+    { "id": "DAC-F-004", "description": "Loading/skeleton states appear within 200ms of initiating a data-fetching action", "done": false },
+    { "id": "DAC-F-005", "description": "Unsaved-changes warning is displayed when navigating away from a modified form", "done": false }
+  ],
+  "accessibility": [
+    { "id": "DAC-A-001", "description": "All interactive elements are keyboard accessible (Tab, Enter, Space, Escape)", "done": false },
+    { "id": "DAC-A-002", "description": "Colour contrast ratio is ≥ 4.5:1 for normal text and ≥ 3:1 for large text on all screens", "done": false },
+    { "id": "DAC-A-003", "description": "All non-text elements have descriptive aria-labels or alt text", "done": false },
+    { "id": "DAC-A-004", "description": "Focus indicators are visible on all interactive elements", "done": false },
+    { "id": "DAC-A-005", "description": "No information is conveyed by colour alone", "done": false }
+  ],
+  "copy_and_content": [
+    { "id": "DAC-P-001", "description": "All headline, CTA, and error message copy matches the approved copy in the screen inventory exactly", "done": false },
+    { "id": "DAC-P-002", "description": "No placeholder text is visible in the running deployment", "done": false }
+  ],
+  "design_system_compliance": [
+    { "id": "DAC-DS-001", "description": "No colour values, font families, or spacing values are used that are not defined in docs/knowledge/design.md", "done": false },
+    { "id": "DAC-DS-002", "description": "All new components listed in new_components_needed are present and match the design spec", "done": false },
+    { "id": "DAC-DS-003", "description": "Animation durations fall within the range specified in Design Budgets", "done": false }
+  ]
+}
 ```
 
 > **How to use this file**: The design-review-agent reads this file after local deployment succeeds. It opens the running application in a browser, navigates through the specified flows, takes screenshots, and checks each AC. Any failing AC is reported back to the orchestrator with a screenshot and a description of the deviation.
@@ -302,7 +254,7 @@ When presenting design decisions, always explain the **user rationale**:
 6. **Set realistic design budgets** — the planning agent uses these as hard constraints.
 7. **Flag design risks** — if a requirement is inherently bad UX, say so clearly.
 8. **Stay in scope** — UX/UI design only. Do not choose implementation technology.
-9. **Always write both outputs**: `design.md` AND `design-ac.md` — the design-review-agent depends on `design-ac.md` to validate the live deployment.
+9. **Always write both outputs**: `design.json` AND `design-ac.json` — the design-review-agent depends on `design-ac.json` to validate the live deployment.
 10. After writing both outputs, **update pipeline state**: set `Current Stage: planning`
 
 ---
@@ -313,4 +265,4 @@ When presenting design decisions, always explain the **user rationale**:
 - **`search`**: Find existing UI components in the codebase, check existing patterns
 - **`web`**: Research UX patterns for the feature type, find accessibility guidelines
 - **`github/*`**: Look at existing UI-related issues, design discussions in PRs
-- **`edit`**: Write output to `.copilot/pipeline/design.md` and `.copilot/pipeline/design-ac.md`
+- **`edit`**: Write output to `.copilot/pipeline/design.json` and `.copilot/pipeline/design-ac.json`

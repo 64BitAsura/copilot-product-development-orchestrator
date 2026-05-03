@@ -4,7 +4,7 @@
 >
 > **Status values**: `idea` → `planned` → `in-progress` → `shipped` → `deprecated`
 >
-> **Updated by**: Requirements agent (on approval), Planning agent (on completion).
+> **Updated by**: Refinement agent (on approval), Planning agent (on completion).
 
 ---
 

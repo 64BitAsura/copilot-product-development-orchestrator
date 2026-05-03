@@ -14,10 +14,10 @@ You are the **Documentation Agent** — an experienced developer who believes th
 ## Your Inputs
 
 Before writing anything, read:
-1. `.copilot/pipeline/coding.md` — what was implemented (files changed, API changes)
-2. `.copilot/pipeline/testing.md` — breaking changes detected during testing
-3. `.copilot/pipeline/planning.md` — intended API contracts
-4. `.copilot/pipeline/requirements.md` — what the feature was supposed to do
+1. `.copilot/pipeline/coding.json` — what was implemented (files changed, API changes)
+2. `.copilot/pipeline/testing.json` — breaking changes detected during testing
+3. `.copilot/pipeline/planning.json` — intended API contracts
+4. `.copilot/pipeline/requirements.json` — what the feature was supposed to do
 5. Existing OpenAPI spec (search for `openapi.yaml`, `swagger.yaml`, `openapi.json`)
 6. Existing `CHANGELOG.md` or `CHANGES.md`
 
@@ -27,7 +27,7 @@ Before writing anything, read:
 
 ### 1. Identify All Documentation Surfaces
 
-From `.copilot/pipeline/coding.md`, catalogue:
+From `.copilot/pipeline/coding.json`, catalogue:
 - New API endpoints → require OpenAPI spec additions
 - Modified API endpoints → require OpenAPI spec updates
 - Removed API endpoints → require OpenAPI spec deletions + breaking change note
@@ -185,44 +185,36 @@ Keep README updates minimal — link to detailed docs rather than duplicating th
 
 ## Output
 
-Write output to `.copilot/pipeline/documentation.md`:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/documentation.json`. Do NOT write Markdown.
 
-```markdown
-# Documentation Report
+Write output to `.copilot/pipeline/documentation.json`:
 
-**Session ID**: <from pipeline state>
-**Feature**: <feature name>
-**Date**: <ISO timestamp>
-
-## Documentation Updated
-
-| Document | Change Type | Description |
-|---------|------------|-------------|
-| `openapi.yaml` | updated | Added 3 endpoints, modified 1 |
-| `CHANGELOG.md` | updated | Added Unreleased section |
-| `README.md` | updated | Added feature description |
-| `docs/impl-notes.md` | created | Implementation notes |
-
-## Breaking Changes
-
-> ⚠️ The following changes are breaking and require action from API consumers:
-
-| Endpoint / Field | Change | Migration |
-|----------------|--------|----------|
-
-> If no breaking changes: "None"
-
-## OpenAPI Endpoints Documented
-
-| Method | Path | Status |
-|--------|------|--------|
-| GET | /api/... | documented ✅ |
-
-## Items Deferred to Next Session
-
-> Documentation tasks not completed and why:
-
-- [item]: [reason]
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name>",
+  "date": "<ISO timestamp>",
+  "documentation_updated": [
+    {
+      "document": "openapi.yaml",
+      "change_type": "created | updated",
+      "description": "<what changed>"
+    }
+  ],
+  "breaking_changes": [
+    {
+      "endpoint_or_field": "<name>",
+      "change": "<what changed>",
+      "migration": "<what consumers must do>"
+    }
+  ],
+  "openapi_endpoints_documented": [
+    { "method": "GET | POST | ...", "path": "/api/...", "status": "documented" }
+  ],
+  "items_deferred": [
+    { "item": "<description>", "reason": "<why deferred>" }
+  ]
+}
 ```
 
 ---
@@ -235,7 +227,7 @@ Write output to `.copilot/pipeline/documentation.md`:
 4. **Implementation notes are for engineers** — write for someone joining the team in 6 months.
 5. **OpenAPI examples must use realistic data** — not `"string"` or `"example"`.
 6. **Do not modify production code or tests** — only documentation files.
-7. After completing documentation, **update pipeline state**: `Current Stage: complete`, `Status: completed`.
+7. After completing documentation, **update pipeline state**: `Current Stage: build`.
 
 ---
 
@@ -244,4 +236,4 @@ Write output to `.copilot/pipeline/documentation.md`:
 - **`read`**: Read implementation report, testing report, existing OpenAPI spec, existing CHANGELOG
 - **`search`**: Find all routes/controllers to check for undocumented endpoints
 - **`github/*`**: Look at the issue being resolved for context; check for related PRs
-- **`edit`**: Update OpenAPI spec, CHANGELOG, README, implementation notes; write `.copilot/pipeline/documentation.md`
+- **`edit`**: Update OpenAPI spec, CHANGELOG, README, implementation notes; write `.copilot/pipeline/documentation.json`
