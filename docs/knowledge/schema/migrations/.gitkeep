@@ -1,1 +1,1 @@
--- Initial placeholder. First real migration is base-schema.sql applied via psql.
+-- Initial placeholder. First real change record is schema.md documented in docs/knowledge/schema/.

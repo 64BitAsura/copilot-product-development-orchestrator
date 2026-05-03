@@ -113,7 +113,7 @@ The `docs/knowledge/` folder is where you describe **your product**. Agents read
 | `docs/knowledge/blueprint/domain-model.md` | Your core entities, their relationships, and ubiquitous language |
 | `docs/knowledge/blueprint/integration-points.md` | All external services your product connects to |
 | `docs/knowledge/blueprint/capability-matrix.md` | Which module/service owns each product capability |
-| `docs/knowledge/schema/base-schema.sql` | Your PostgreSQL database schema (starter tables are provided) |
+| `docs/knowledge/schema/schema.md` | Your data model — entities, fields, relationships, and access patterns (database-agnostic) |
 
 The other files (`design-principles.md`, `tech-stack.md`, `security-best-practices.md`, `testing-guidelines.md`) contain sensible defaults — update them to match your stack.
 
@@ -188,7 +188,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | Model entities and aggregates correctly |
 | `blueprint/integration-points.md` | Know what external services are involved |
 | `blueprint/capability-matrix.md` | Assign responsibilities to the right module/service |
-| `schema/base-schema.sql` | Understand the existing data model |
+| `schema/schema.md` | Understand the existing data model |
 | `schema/erd.md` | Visualise entity relationships |
 | `schema/schema-conventions.md` | Follow naming and design patterns |
 | `requirements/past-decisions.md` | Respect historical architectural decisions |
@@ -200,7 +200,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `security-best-practices.md` | Apply and extend the product's security rules |
 | `blueprint/integration-points.md` | Identify trust boundaries at external connections |
 | `blueprint/domain-model.md` | Find sensitive entities needing access control |
-| `schema/base-schema.sql` | Check for insecure schema patterns |
+| `schema/schema.md` | Check for insecure data model patterns |
 
 ### Coding Agent
 | File | Why |
@@ -209,7 +209,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | Map code to domain entities correctly |
 | `blueprint/integration-points.md` | Implement integrations to the right external services |
 | `blueprint/capability-matrix.md` | Put code in the right module/service |
-| `schema/base-schema.sql` | Write queries/ORM models matching the real schema |
+| `schema/schema.md` | Write queries/ORM models matching the real data model |
 | `schema/schema-conventions.md` | Follow naming and design conventions |
 | `schema/migrations-guide.md` | Write proper migrations when changing the schema |
 | `security-best-practices.md` | Implement secure patterns from the start |
@@ -221,7 +221,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `testing-guidelines.md` | Follow the project's test standards and coverage thresholds |
 | `tech-stack.md` | Use the correct test frameworks |
 | `blueprint/domain-model.md` | Write tests that reflect real business rules |
-| `schema/base-schema.sql` | Set up correct fixtures and seed data |
+| `schema/schema.md` | Set up correct fixtures and seed data |
 | `requirements/acceptance-criteria-guide.md` | Derive test cases from acceptance criteria |
 
 ### Documentation Agent
@@ -297,7 +297,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | | | |
 | `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ | ✅ | | |
 | `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | | | | |
-| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | | |
+| `schema/schema.md` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | | |
 | `schema/erd.md` | | | ✅ | | | | | | | | | | | |
 | `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | | |
 | `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | | |
@@ -334,13 +334,13 @@ docs/knowledge/
 │   ├── integration-points.md  # ✏️ YOUR external service integrations
 │   └── capability-matrix.md   # ✏️ Which module/service owns each capability
 │
-└── schema/                    # YOUR product's database schema
+└── schema/                    # YOUR product's data model
     ├── README.md
-    ├── base-schema.sql        # ✏️ YOUR PostgreSQL schema (starter tables provided)
+    ├── schema.md              # ✏️ YOUR entities, fields, relationships (database-agnostic)
     ├── erd.md                 # ✏️ YOUR Entity Relationship Diagram
     ├── schema-conventions.md  # Naming rules and design patterns
-    ├── migrations-guide.md    # How to write and run migrations
-    └── migrations/            # Incremental migration files (one per schema change)
+    ├── migrations-guide.md    # How to document and track schema changes
+    └── migrations/            # Incremental change records (one per schema change)
 ```
 
 > **✏️** = files you must fill in before running the pipeline for the first time.

@@ -1,270 +1,160 @@
-# Migrations Guide
+# Schema Changes Guide
 
-> How to write, name, apply, and track database migrations. All schema changes go through migrations — no direct schema edits in production.
+> How to document, plan, and track changes to the data model. This guide is **database-agnostic** — the process applies regardless of whether your project uses a relational database, document store, graph database, or another storage technology.
+>
+> The technology-specific mechanics (SQL `ALTER TABLE`, MongoDB `db.runCommand`, DynamoDB table updates, etc.) are the responsibility of the coding agent and live in the codebase, not in this guide.
 
 ---
 
 ## Guiding Principles
 
-1. **Every schema change is a migration.** No DDL runs directly in production outside of a migration file.
-2. **Migrations are ordered.** Each migration builds on the previous. Never reorder.
-3. **Migrations are append-only.** Once merged to the default branch, a migration is immutable. Fix mistakes with a new migration.
-4. **Migrations are idempotent where possible.** Use `IF NOT EXISTS`, `IF EXISTS`, `DO $$ ... END $$` guards.
-5. **Rollback migrations are written alongside forward migrations.** Every change must be reversible.
+1. **Document first.** Update `schema.md` and `erd.md` before (or alongside) writing the implementation code.
+2. **Every change is tracked.** All schema changes — additive or breaking — must have a corresponding change record in the `migrations/` folder.
+3. **Changes are ordered and append-only.** Migration records are immutable once merged to the default branch. Mistakes are fixed with a new record, not by editing old ones.
+4. **Changes are reversible.** Every migration record must describe how to undo the change.
+5. **Breaking changes are called out explicitly.** Any change that removes or renames fields, changes types incompatibly, or alters cardinality is a breaking change and must be flagged.
 
 ---
 
-## Migration File Format
+## Change Record Location
 
-### Location
 ```
 docs/knowledge/schema/migrations/
 ```
 
-### Naming Convention
+---
+
+## Naming Convention
+
 ```
-YYYYMMDD_NNN_description.sql
+YYYYMMDD_NNN_description.md
 ```
 
-- `YYYYMMDD` — date of the migration
+- `YYYYMMDD` — date of the change
 - `NNN` — 3-digit sequential number within that day (001, 002, ...)
-- `description` — short snake_case description of what the migration does
+- `description` — short snake_case description of what the change does
 
 **Examples:**
 ```
-20250101_001_initial_schema.sql
-20250115_001_add_security_loop_count_to_pipeline_runs.sql
-20250120_001_add_git_sha_to_agent_profiles.sql
-20250120_002_add_full_text_search_index_on_inputs.sql
+20250101_001_initial_schema.md
+20250115_001_add_retry_count_to_pipeline_runs.md
+20250120_001_add_git_sha_to_agent_profiles.md
+20250120_002_add_full_text_search_on_inputs.md
 ```
 
 ---
 
-## Migration File Structure
+## Change Record Structure
 
-Every migration file must contain:
+Every change record must contain:
 
-```sql
--- =============================================================================
--- Migration: YYYYMMDD_NNN_description
--- Author: <agent name or GitHub username>
--- Date: YYYY-MM-DD
--- Description: <one paragraph explaining what this changes and why>
--- Affected tables: <comma-separated list>
--- Breaking change: yes | no
--- =============================================================================
+```markdown
+# Migration: YYYYMMDD_NNN_description
 
--- =====================
--- FORWARD MIGRATION
--- =====================
+**Author**: <agent name or GitHub username>
+**Date**: YYYY-MM-DD
+**Breaking change**: yes | no
+**Affected entities**: <comma-separated list>
 
-BEGIN;
+## Description
 
--- [DDL statements]
+<One paragraph explaining what this changes and why.>
 
-COMMIT;
+## Forward Change
 
+<Describe the data model change in plain language or pseudocode.
+For relational DBs, this may include SQL DDL snippets.
+For document stores, describe the new document shape.
+For graph DBs, describe new nodes/edges/properties.>
 
--- =====================
--- ROLLBACK MIGRATION
--- =====================
--- To roll back, run everything below this line.
+### Entities added
+- [EntityName]: [brief description]
 
-BEGIN;
+### Fields added
+- [EntityName].[field_name] ([type], required/optional): [description]
 
--- [Inverse DDL statements]
+### Fields removed
+- [EntityName].[old_field_name]: [reason for removal]
 
-COMMIT;
+### Relationships changed
+- [EntityA] → [EntityB]: [describe cardinality or deletion behaviour change]
+
+## Rollback
+
+<Describe how to reverse this change.
+What data would be lost or need to be migrated back?>
+
+## Checklist
+
+- [ ] `schema.md` updated
+- [ ] `erd.md` updated
+- [ ] Implementation code written and tested
+- [ ] `domain-model.md` updated (if entities added/removed/renamed)
+- [ ] `past-decisions.md` updated (if breaking change)
+- [ ] API documentation updated (if change affects public API shape)
 ```
 
 ---
 
-## Migration Types and Templates
+## Types of Schema Change
 
-### Add a column (non-nullable with default)
+### Add a new entity
 
-```sql
--- FORWARD
-BEGIN;
-ALTER TABLE pipeline_runs
-    ADD COLUMN IF NOT EXISTS security_loop_count INTEGER NOT NULL DEFAULT 0;
-COMMIT;
+- Add the entity block to `schema.md`.
+- Add the entity to `erd.md` with its fields and relationships.
+- Create a migration record documenting the new entity.
+- Implement in the codebase (create table / collection / node type).
 
--- ROLLBACK
-BEGIN;
-ALTER TABLE pipeline_runs DROP COLUMN IF EXISTS security_loop_count;
-COMMIT;
-```
+### Add a field to an existing entity
 
-### Add a nullable column
+- Add the field to the entity block in `schema.md`.
+- Update `erd.md` if the field affects relationships.
+- Create a migration record.
+- If the field is **required** and the entity already has records, provide a default value or a backfill step.
 
-```sql
--- FORWARD
-BEGIN;
-ALTER TABLE stages
-    ADD COLUMN IF NOT EXISTS reviewer_notes TEXT;
-COMMIT;
+### Remove a field (two-phase, zero-downtime)
 
--- ROLLBACK
-BEGIN;
-ALTER TABLE stages DROP COLUMN IF EXISTS reviewer_notes;
-COMMIT;
-```
+**Phase 1 — Deprecate:** Mark the field as deprecated in `schema.md`. Stop writing to it in new code. Read from both old and new fields.
 
-### Add a NOT NULL column to a live table (two-phase)
+**Phase 2 — Remove:** Once all reads/writes to the old field are gone, create a migration record to formally remove it and drop it from the storage layer.
 
-**Phase 1 — Add as nullable, backfill, then constrain:**
+### Rename a field
 
-```sql
--- FORWARD
-BEGIN;
--- Step 1: add as nullable
-ALTER TABLE inputs ADD COLUMN IF NOT EXISTS checksum TEXT;
--- Step 2: backfill
-UPDATE inputs SET checksum = md5(raw_content) WHERE checksum IS NULL;
--- Step 3: add NOT NULL constraint
-ALTER TABLE inputs ALTER COLUMN checksum SET NOT NULL;
-COMMIT;
+Renames are always breaking. Use the two-phase remove approach:
+1. Add the new field, dual-write to both fields.
+2. Migrate reads to the new field.
+3. Remove the old field via Phase 2 above.
 
--- ROLLBACK
-BEGIN;
-ALTER TABLE inputs DROP COLUMN IF EXISTS checksum;
-COMMIT;
-```
+### Change a field's type
 
-### Add a new table
+Changing types is almost always breaking. Use a new field and backfill, then remove the old field.
 
-```sql
--- FORWARD
-BEGIN;
-CREATE TABLE IF NOT EXISTS pipeline_run_tags (
-    id              UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-    pipeline_run_id UUID        NOT NULL REFERENCES pipeline_runs (id) ON DELETE CASCADE,
-    tag             TEXT        NOT NULL,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_pipeline_run_tags_pipeline_run_id ON pipeline_run_tags (pipeline_run_id);
-COMMIT;
+### Change relationship cardinality
 
--- ROLLBACK
-BEGIN;
-DROP TABLE IF EXISTS pipeline_run_tags;
-COMMIT;
-```
-
-### Add an index
-
-> `CONCURRENTLY` avoids table locks on large tables but **cannot run inside a transaction block**. Omit `BEGIN`/`COMMIT` for these migrations.
-
-```sql
--- FORWARD (no transaction — CONCURRENTLY is incompatible with explicit transactions)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_your_table_column
-    ON your_table (column_name DESC);
-
--- ROLLBACK
-DROP INDEX CONCURRENTLY IF EXISTS idx_your_table_column;
-```
-
-For small tables or when downtime is acceptable, a regular (non-concurrent) index inside a transaction is simpler:
-
-```sql
--- FORWARD
-BEGIN;
-CREATE INDEX IF NOT EXISTS idx_your_table_column ON your_table (column_name);
-COMMIT;
-
--- ROLLBACK
-BEGIN;
-DROP INDEX IF EXISTS idx_your_table_column;
-COMMIT;
-```
-
-### Extend an enum
-
-```sql
--- FORWARD
-BEGIN;
-ALTER TYPE stage_type ADD VALUE IF NOT EXISTS 'review';
-COMMIT;
-
--- ROLLBACK
--- Note: PostgreSQL does not support removing enum values directly.
--- To roll back: create a new type without the value, migrate columns, drop old type.
--- Document this complexity in the migration header.
-```
-
-### Rename a column (two-phase, zero-downtime)
-
-**Phase 1 — Add new column, dual-write:**
-```sql
-BEGIN;
-ALTER TABLE stages ADD COLUMN IF NOT EXISTS agent_identifier TEXT;
-UPDATE stages SET agent_identifier = agent_name WHERE agent_identifier IS NULL;
-COMMIT;
-```
-
-**Phase 2 — Drop old column (after all code uses new column):**
-```sql
-BEGIN;
-ALTER TABLE stages ALTER COLUMN agent_identifier SET NOT NULL;
-ALTER TABLE stages DROP COLUMN IF EXISTS agent_name;
-COMMIT;
-```
+- Update `schema.md` and `erd.md`.
+- Assess whether existing data needs migration.
+- Create a migration record describing the data migration strategy.
 
 ---
 
-## Tracking Applied Migrations
+## Tracking Applied Changes
 
-Use a `schema_migrations` table to track which migrations have been applied:
+Use the `migrations/` folder as the single source of truth for what has been applied. Each file in the folder represents one applied (or planned) change.
 
-```sql
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version     TEXT        NOT NULL PRIMARY KEY,   -- e.g. "20250101_001"
-    applied_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-After running a migration, insert its version:
-```sql
-INSERT INTO schema_migrations (version) VALUES ('20250101_001')
-ON CONFLICT (version) DO NOTHING;
-```
-
----
-
-## Running Migrations
-
-### Development
-```bash
-psql -d $DATABASE_URL -f docs/knowledge/schema/migrations/<filename>.sql
-```
-
-### CI (automated)
-```bash
-# Run all unapplied migrations in order (only YYYYMMDD_NNN_* files)
-for f in $(ls docs/knowledge/schema/migrations/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | sort); do
-    version=$(basename "$f" .sql | grep -oE '^[0-9]{8}_[0-9]+')
-    applied=$(psql -d $DATABASE_URL -tAc "SELECT 1 FROM schema_migrations WHERE version='$version'")
-    if [ -z "$applied" ]; then
-        echo "Applying $f..."
-        psql -d $DATABASE_URL -f "$f"
-    fi
-done
-```
+For codebases that use a migration runner (e.g., Flyway, Liquibase, Atlas, Alembic, Prisma Migrate, Mongoose-migrate), the migration record files in this folder serve as the documentation layer. The actual runnable migration files live in the codebase alongside the application code.
 
 ---
 
 ## Migration Checklist
 
-Before merging a migration:
+Before merging a schema change:
 
-- [ ] File name follows `YYYYMMDD_NNN_description.sql` convention
-- [ ] Header includes author, date, description, affected tables, breaking change flag
-- [ ] Forward migration is wrapped in `BEGIN` / `COMMIT`
-- [ ] Rollback migration is included
-- [ ] `IF NOT EXISTS` / `IF EXISTS` guards are used where applicable
-- [ ] New FK columns have corresponding indexes
+- [ ] Change record file follows `YYYYMMDD_NNN_description.md` naming
+- [ ] Record includes author, date, description, affected entities, and breaking-change flag
+- [ ] Forward change is fully described
+- [ ] Rollback / reversal strategy is described
+- [ ] `schema.md` is updated
 - [ ] `erd.md` is updated
-- [ ] `domain-model.md` is updated if entities changed
-- [ ] `past-decisions.md` is updated if this is a breaking or significant change
+- [ ] `domain-model.md` is updated (if entities added, removed, or renamed)
+- [ ] `past-decisions.md` updated (if breaking or architecturally significant)
 - [ ] If breaking: `documentation-agent` is notified to update API docs and changelog
