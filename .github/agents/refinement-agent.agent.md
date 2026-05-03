@@ -74,47 +74,34 @@ Using the knowledge harness:
 
 ### 4. Write Output
 
-Write your complete output to `.copilot/pipeline/requirements.md` in this format:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/requirements.json`. Do NOT write Markdown.
 
-```markdown
-# Refined Requirements
+Write your complete output to `.copilot/pipeline/requirements.json` in this format:
 
-**Session ID**: <from pipeline state>
-**Date**: <ISO timestamp>
-**Input Summary**: <one-line summary of what was requested>
-
-## Problem Statement
-<Clear description of the problem being solved>
-
-## Target Users
-<Who this is for>
-
-## Knowledge Harness Alignment
-<How this fits the product vision>
-
-## Refinements Made
-<List every gap that was self-resolved, each tagged [UPDATE: <reason>]. If none, write "None".>
-
-## Acceptance Criteria
-- [ ] ...
-- [ ] ...
-
-## Non-Functional Requirements
-- Performance: ...
-- Security: ...
-- Accessibility: ...
-- Scalability: ...
-
-## Dos and Don'ts
-
-### Dos
-- ...
-
-### Don'ts
-- ...
-
-## Out of Scope
-- ...
+```json
+{
+  "session_id": "<from pipeline state>",
+  "date": "<ISO timestamp>",
+  "input_summary": "<one-line summary of what was requested>",
+  "problem_statement": "<clear description of the problem being solved>",
+  "target_users": "<who this is for>",
+  "knowledge_harness_alignment": "<how this fits the product vision>",
+  "refinements_made": [
+    { "change": "<what was self-resolved>", "reason": "<why>" }
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-001", "description": "<criterion>", "done": false }
+  ],
+  "non_functional_requirements": {
+    "performance": "<requirement>",
+    "security": "<requirement>",
+    "accessibility": "<requirement>",
+    "scalability": "<requirement>"
+  },
+  "dos": ["<do this>"],
+  "donts": ["<do not do this>"],
+  "out_of_scope": ["<excluded item>"]
+}
 ```
 
 ---
@@ -161,7 +148,7 @@ You would:
 2. Identify gaps:
    - *Small gap*: No mention of system-preference sync → self-resolve: default to following OS dark/light preference, tag `[UPDATE: defaulting to OS-level preference sync per standard platform conventions]`
    - *Complex gap*: It's unclear whether "app" means mobile, web, or both → stop and ask the human
-3. Once complex gaps are answered, write the refined ticket to `.copilot/pipeline/requirements.md` with all `[UPDATE]` tags inline
+3. Once complex gaps are answered, write the refined ticket to `.copilot/pipeline/requirements.json` with all self-resolved changes captured in the `refinements_made` array
 
 ---
 
@@ -170,4 +157,4 @@ You would:
 - **`read`**: Read knowledge harness documents (`docs/knowledge/`), existing requirements, and referenced docs
 - **`web`**: Research best practices for the type of feature being requested
 - **`github/*`**: Read the issue details, existing labels, milestones, related issues and PRs
-- **`edit`**: Write output to `.copilot/pipeline/requirements.md`
+- **`edit`**: Write output to `.copilot/pipeline/requirements.json`

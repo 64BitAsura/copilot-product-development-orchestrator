@@ -155,7 +155,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 Each agent reads specific files from `docs/knowledge/` on every pipeline run. The table below shows which files each agent depends on and why.
 
-### Requirements Agent
+### Refinement Agent
 | File | Why |
 |------|-----|
 | `product-vision.md` | Understand purpose, users, and success metrics |
@@ -278,7 +278,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 
 ### Summary Matrix
 
-| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | DrRev | BackTrack |
+| Knowledge File | Rfn | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | DrRev | BackTrack |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
 | `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
@@ -353,31 +353,31 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 
 ```
 .copilot/pipeline/
-├── state.md                     # Current stage, status, session ID
-├── requirements.md              # Requirements agent output
-├── design.md                    # Design agent output
-├── design-ac.md                 # Design acceptance criteria (verified by design-review-agent)
-├── planning.md                  # Planning agent output
-├── performance.md               # Performance agent output (bottleneck findings)
-├── security.md                  # Security agent output
-├── coding.md                    # Coding agent implementation report
-├── linting.md                   # Linting agent report (issues fixed, loops completed)
-├── testing.md                   # Tester agent report (coverage, failures)
-├── documentation.md             # Documentation agent report
-├── build.md                     # Build agent report (artifact inventory, sizes)
-├── local-deployment.md          # Local deployment agent report (running services)
-├── e2e-testing.md               # E2E agent test results (scenario outcomes, gaps found)
-├── design-review.md             # Design Review agent report (DAC pass/fail evidence)
-├── back-tracker-preliminary.md  # Back Tracker Phase 1 report (code analysis, runs in parallel)
-├── back-tracker.md              # Back Tracker Phase 2 report (final requirements coverage verdict)
+├── state.json                     # Current stage, status, session ID
+├── requirements.json              # Refinement agent output
+├── design.json                    # Design agent output
+├── design-ac.json                 # Design acceptance criteria (verified by design-review-agent)
+├── planning.json                  # Planning agent output
+├── performance.json               # Performance agent output (bottleneck findings)
+├── security.json                  # Security agent output
+├── coding.json                    # Coding agent implementation report
+├── linting.json                   # Linting agent report (issues fixed, loops completed)
+├── testing.json                   # Tester agent report (coverage, failures)
+├── documentation.json             # Documentation agent report
+├── build.json                     # Build agent report (artifact inventory, sizes)
+├── local-deployment.json          # Local deployment agent report (running services)
+├── e2e-testing.json               # E2E agent test results (scenario outcomes, gaps found)
+├── design-review.json             # Design Review agent report (DAC pass/fail evidence)
+├── back-tracker-preliminary.json  # Back Tracker Phase 1 report (code analysis, runs in parallel)
+├── back-tracker.json              # Back Tracker Phase 2 report (final requirements coverage verdict)
 │
 │   ── Persistent memory (survive across pipeline sessions) ──
-├── build-strategy.md            # Approved build strategy — reused on every subsequent build
-├── local-deployment-strategy.md # Approved deployment strategy — reused on every subsequent deploy
-└── e2e-test-plan.md             # Approved E2E test plan — extended on every subsequent run
+├── build-strategy.json            # Approved build strategy — reused on every subsequent build
+├── local-deployment-strategy.json # Approved deployment strategy — reused on every subsequent deploy
+└── e2e-test-plan.json             # Approved E2E test plan — extended on every subsequent run
 ```
 
-> **Persistent memory files** (`build-strategy.md`, `local-deployment-strategy.md`, and `e2e-test-plan.md`) are written once when the human approves the strategy/plan on the first run. On all subsequent pipeline runs the relevant agents read these files directly and build on them without re-asking for approval — unless the architecture or requirements change significantly enough to warrant a new strategy.
+> **Persistent memory files** (`build-strategy.json`, `local-deployment-strategy.json`, and `e2e-test-plan.json`) are written once when the human approves the strategy/plan on the first run. On all subsequent pipeline runs the relevant agents read these files directly and build on them without re-asking for approval — unless the architecture or requirements change significantly enough to warrant a new strategy.
 
 ---
 

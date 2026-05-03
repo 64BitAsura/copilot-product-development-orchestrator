@@ -22,11 +22,11 @@ Your obsessions:
 ## Your Inputs
 
 Before starting, read:
-1. `.copilot/pipeline/coding.md` — what was implemented (languages, frameworks, new dependencies)
-2. `.copilot/pipeline/planning.md` — architecture choices, tech stack
+1. `.copilot/pipeline/coding.json` — what was implemented (languages, frameworks, new dependencies)
+2. `.copilot/pipeline/planning.json` — architecture choices, tech stack
 3. `docs/knowledge/tech-stack.md` — existing technology stack
 4. Existing build artifacts: look for `Dockerfile*`, `docker-compose*.yml`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `.github/workflows/`
-5. `.copilot/pipeline/build-strategy.md` — approved build strategy from a previous session (if it exists)
+5. `.copilot/pipeline/build-strategy.json` — approved build strategy from a previous session (if it exists)
 
 ---
 
@@ -34,7 +34,7 @@ Before starting, read:
 
 ### Phase A — First Run: Strategy Definition and Approval
 
-If `.copilot/pipeline/build-strategy.md` does **not** exist, you are in first-run mode.
+If `.copilot/pipeline/build-strategy.json` does **not** exist, you are in first-run mode.
 
 #### A1. Analyse the Stack
 
@@ -103,7 +103,7 @@ Please review and select one, or provide feedback.
 📌 Recommended: Option [X]
 Reasoning: [technical justification]
 
-Your selection will be documented in .copilot/pipeline/build-strategy.md
+Your selection will be documented in .copilot/pipeline/build-strategy.json
 for all future build runs.
 ```
 
@@ -111,52 +111,46 @@ for all future build runs.
 
 #### A4. Document the Approved Strategy
 
-Once approved, write the full strategy to `.copilot/pipeline/build-strategy.md`:
+Once approved, write the full strategy to `.copilot/pipeline/build-strategy.json`:
 
-```markdown
-# Build Strategy
-
-**Approved**: <ISO timestamp>
-**Approved By**: <human in the loop>
-**Session ID**: <from pipeline state>
-
-## Selected Option
-
-[Full description of the approved option]
-
-## Component Inventory
-
-| Component | Type | Base Image / Runtime | Purpose |
-|-----------|------|---------------------|---------|
-| [name] | image / package | [image:digest or runtime:version] | [purpose] |
-
-## Build Commands
-
-| Component | Command | Output |
-|-----------|---------|--------|
-| [name] | `<build command>` | [artifact path or image tag] |
-
-## Cache Configuration
-
-| Layer | Cache Key | Invalidation Trigger |
-|-------|-----------|---------------------|
-| [layer] | [key] | [what busts the cache] |
-
-## Future Guidance
-
-[Notes for the build agent on subsequent runs — gotchas, special steps, known issues]
+```json
+{
+  "approved": "<ISO timestamp>",
+  "approved_by": "<human in the loop>",
+  "session_id": "<from pipeline state>",
+  "selected_option": {
+    "id": "A",
+    "title": "<title>",
+    "approach": "<description>"
+  },
+  "component_inventory": [
+    {
+      "component": "<name>",
+      "type": "image | package",
+      "base_image_or_runtime": "<image:digest or runtime:version>",
+      "purpose": "<purpose>"
+    }
+  ],
+  "build_commands": [
+    { "component": "<name>", "command": "<build command>", "output": "<artifact path or image tag>" }
+  ],
+  "cache_configuration": [
+    { "layer": "<layer>", "cache_key": "<key>", "invalidation_trigger": "<what busts the cache>" }
+  ],
+  "future_guidance": "<notes for the build agent on subsequent runs>"
+}
 ```
 
 ---
 
 ### Phase B — Subsequent Runs: Build Execution
 
-On subsequent invocations (`.copilot/pipeline/build-strategy.md` exists), execute the approved strategy.
+On subsequent invocations (`.copilot/pipeline/build-strategy.json` exists), execute the approved strategy.
 
 #### B1. Read the Approved Strategy
 
-Read `.copilot/pipeline/build-strategy.md` and confirm no architectural changes in the current session require a strategy revision:
-- Check `.copilot/pipeline/coding.md` for new services, languages, or dependencies
+Read `.copilot/pipeline/build-strategy.json` and confirm no architectural changes in the current session require a strategy revision:
+- Check `.copilot/pipeline/coding.json` for new services, languages, or dependencies
 - If significant new components were added, flag this to the orchestrator and present an updated strategy option before building
 
 #### B2. Update Base Images (on need basis)
@@ -206,53 +200,54 @@ docker run --rm <image>:<tag> <health-check-command>
 
 ## Output
 
-Write output to `.copilot/pipeline/build.md`:
+> **Format**: JSON only. Write using the `edit` tool to `.copilot/pipeline/build.json` (and `.copilot/pipeline/build-strategy.json` on first run). Do NOT write Markdown.
 
-```markdown
-# Build Report
+Write output to `.copilot/pipeline/build.json`:
 
-**Session ID**: <from pipeline state>
-**Feature**: <feature name>
-**Date**: <ISO timestamp>
-**Run Type**: first-run (strategy approval) / subsequent-run (execution)
-**Overall Result**: ✅ SUCCESS | ❌ FAILED | ⏸️ AWAITING STRATEGY APPROVAL
-
-## Strategy Status
-
-[First run: "Pending approval" | Subsequent run: "Using approved strategy from <date>"]
-
-## Components Built
-
-| Component | Type | Tag / Version | Size | Build Duration | Cache Hit |
-|-----------|------|--------------|------|---------------|-----------|
-| [name] | image / package | [tag] | [size] | [Xs] | XX% |
-
-## Base Image Updates
-
-| Component | Previous | Updated To | Reason |
-|-----------|---------|-----------|--------|
-| [name] | [image:tag] | [image:tag] | security patch |
-
-## Build Verification
-
-- [ ] No secrets embedded in artifacts
-- [ ] No dev dependencies in production artifacts
-- [ ] All components start up cleanly (smoke test passed)
-- [ ] Artifacts tagged with git SHA: <sha>
-
-## Artifact Inventory
-
-| Component | Artifact | Location | Size |
-|-----------|---------|---------|------|
-| [name] | [image name or package path] | [registry or path] | [size] |
-
-## Warnings / Anomalies
-
-[Any size increases, deprecated base image warnings, or non-fatal build issues]
-
-## Errors (if build failed)
-
-[Full error output]
+```json
+{
+  "session_id": "<from pipeline state>",
+  "feature": "<feature name>",
+  "date": "<ISO timestamp>",
+  "run_type": "first_run | subsequent_run",
+  "overall_result": "SUCCESS | FAILED | AWAITING_STRATEGY_APPROVAL",
+  "strategy_status": "<first run: Pending approval | subsequent run: Using approved strategy from <date>>",
+  "components_built": [
+    {
+      "component": "<name>",
+      "type": "image | package",
+      "tag_or_version": "<tag>",
+      "size": "<size>",
+      "build_duration_sec": 0,
+      "cache_hit_pct": 0
+    }
+  ],
+  "base_image_updates": [
+    {
+      "component": "<name>",
+      "previous": "<image:tag>",
+      "updated_to": "<image:tag>",
+      "reason": "security patch"
+    }
+  ],
+  "build_verification": {
+    "no_secrets_embedded": false,
+    "no_dev_dependencies_in_prod": false,
+    "all_components_start_cleanly": false,
+    "artifacts_tagged_with_git_sha": false,
+    "git_sha": "<sha>"
+  },
+  "artifact_inventory": [
+    {
+      "component": "<name>",
+      "artifact": "<image name or package path>",
+      "location": "<registry or path>",
+      "size": "<size>"
+    }
+  ],
+  "warnings": ["<size increases, deprecated warnings, non-fatal issues>"],
+  "errors": ["<full error output if build failed>"]
+}
 ```
 
 ---
@@ -278,4 +273,4 @@ Write output to `.copilot/pipeline/build.md`:
 - **`execute`**: Run build commands, smoke tests, image inspection commands
 - **`agent`**: Delegate language-specific build configuration to developer subagents if needed
 - **`github/*`**: Inspect existing CI/CD workflows for build patterns
-- **`edit`**: Write/update `.copilot/pipeline/build-strategy.md`, `.copilot/pipeline/build.md`
+- **`edit`**: Write/update `.copilot/pipeline/build-strategy.json`, `.copilot/pipeline/build.json`
