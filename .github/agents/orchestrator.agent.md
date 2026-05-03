@@ -69,11 +69,11 @@ Most stages advance automatically. The pipeline pauses for user approval only at
 Before invoking any agent:
 
 1. **Parse the input** — extract the main request and all reference inputs.
-2. **Create the pipeline state file** at `.copilot/pipeline/state.md` with:
+2. **Create the pipeline state file** at `.copilot/pipeline/state.json` with:
    - `Session ID` (timestamp-based)
    - `Main Input` (issue title + body, or prompt text)
    - `Reference Inputs` (list of all references)
-   - `Current Stage`: `requirements`
+   - `Current Stage`: `refinement`
    - `Status`: `in_progress`
 3. **MCP Server Readiness Check** — verify that all required MCP servers are available before invoking any agent:
    ```
@@ -99,7 +99,7 @@ Before invoking any agent:
    🔌 MCP Servers: github/* ✅  playwright/* ✅
    🔄 Starting pipeline: Requirements → Design → Planning → Performance+Security (parallel) → Coding → Linting → Testing → Documentation → Build → Local Deployment → E2E + Design Review + Back Tracker Phase 1 (parallel) → Back Tracker Phase 2 → Pull Request
    ```
-5. **Ticket Type Classification** — assess the main input and classify into a pipeline lane. Record `Lane` in `.copilot/pipeline/state.md`.
+5. **Ticket Type Classification** — assess the main input and classify into a pipeline lane. Record `Lane` in `.copilot/pipeline/state.json`.
 
    | Lane | Applies when | Stages skipped |
    |------|-------------|----------------|
@@ -117,7 +117,7 @@ Invoke `refinement-agent` with:
 - All reference inputs
 - Path to pipeline state file
 
-Wait for the refinement agent to complete and write its output to `.copilot/pipeline/requirements.md`.
+Wait for the refinement agent to complete and write its output to `.copilot/pipeline/requirements.json`.
 
 **User checkpoint**: Present the requirements output. Ask: _"Do you approve these requirements, or would you like changes? (approve / revise: [your feedback])"_
 
@@ -126,14 +126,14 @@ Do not proceed until the user approves.
 ### 2. Design
 
 Invoke `design-agent` with:
-- Approved requirements from `.copilot/pipeline/requirements.md`
+- Approved requirements from `.copilot/pipeline/requirements.json`
 - Reference inputs (especially images/mockups)
 - Path to pipeline state
 
 The design-agent will first check whether `docs/knowledge/design.md` exists in the knowledge source.
 
 **If the Design System Gate fires (no `docs/knowledge/design.md` and request involves UI/UX)**:
-- The design-agent writes a blocker to `.copilot/pipeline/design.md`
+- The design-agent writes a blocker to `.copilot/pipeline/design.json`
 - **Stop the pipeline immediately.** Do not invoke any downstream agents.
 - Present the blocker to the user:
   ```
@@ -149,8 +149,8 @@ The design-agent will first check whether `docs/knowledge/design.md` exists in t
 
 **Otherwise** (design.md exists, or no UI/UX changes are in scope):
 Wait for design agent output in:
-- `.copilot/pipeline/design.md` — design specification
-- `.copilot/pipeline/design-ac.md` — design acceptance criteria (used by design-review-agent)
+- `.copilot/pipeline/design.json` — design specification
+- `.copilot/pipeline/design-ac.json` — design acceptance criteria (used by design-review-agent)
 
 **User checkpoint**: Present design output. Ask for approval or revisions.
 
@@ -161,7 +161,7 @@ Invoke `planning-agent` with:
 - Approved design
 - Reference inputs (especially repos/URLs)
 
-Wait for planning agent output in `.copilot/pipeline/planning.md`.
+Wait for planning agent output in `.copilot/pipeline/planning.json`.
 
 **User checkpoint**: Present implementation options with confidence ratings. Ask the user to select an option or request revisions.
 
@@ -170,9 +170,9 @@ Wait for planning agent output in `.copilot/pipeline/planning.md`.
 Invoke `performance-agent` and `security-agent` **in parallel** — both agents analyze the same approved implementation plan independently and have no dependency on each other's output.
 
 **Both agents receive:**
-- Chosen implementation plan (`.copilot/pipeline/planning.md`)
-- Approved requirements (`.copilot/pipeline/requirements.md`)
-- Design spec including design budgets (`.copilot/pipeline/design.md`) — performance agent uses this
+- Chosen implementation plan (`.copilot/pipeline/planning.json`)
+- Approved requirements (`.copilot/pipeline/requirements.json`)
+- Design spec including design budgets (`.copilot/pipeline/design.json`) — performance agent uses this
 - Reference to existing codebase
 
 Wait for **both** to complete before proceeding.
@@ -196,16 +196,16 @@ Invoke `coding-agent` with:
 - Security constraints
 - Performance constraints from performance agent
 
-Monitor coding agent progress. It writes to `.copilot/pipeline/coding.md`.
+Monitor coding agent progress. It writes to `.copilot/pipeline/coding.json`.
 
 No user checkpoint required for implementation (unless the coding agent surfaces a blocking question).
 
 ### 6. Linting & Formatting
 
 Invoke `linting-agent` with:
-- List of changed files from coding agent (`.copilot/pipeline/coding.md`)
+- List of changed files from coding agent (`.copilot/pipeline/coding.json`)
 
-The linting agent runs auto-fix tools, then delegates unfixable issues to the coding agent and loops until the codebase is clean. It writes to `.copilot/pipeline/linting.md`.
+The linting agent runs auto-fix tools, then delegates unfixable issues to the coding agent and loops until the codebase is clean. It writes to `.copilot/pipeline/linting.json`.
 
 No user checkpoint required.
 
@@ -216,7 +216,7 @@ Invoke `tester-agent` with:
 - Requirements
 - API changes documented
 
-Tester agent coordinates with coding agent automatically if tests fail. It writes to `.copilot/pipeline/testing.md`.
+Tester agent coordinates with coding agent automatically if tests fail. It writes to `.copilot/pipeline/testing.json`.
 
 No user checkpoint required.
 
@@ -227,30 +227,30 @@ Invoke `documentation-agent` with:
 - API changes
 - Breaking change notes from tester agent
 
-Documentation agent writes to `.copilot/pipeline/documentation.md`.
+Documentation agent writes to `.copilot/pipeline/documentation.json`.
 
 ### 9. Build
 
 Invoke `build-agent` with:
-- Implementation report (`.copilot/pipeline/coding.md`)
+- Implementation report (`.copilot/pipeline/coding.json`)
 - Technology stack context
 
 The documentation and build steps are independent — if the pipeline allows it, the documentation agent may run **concurrently** with the build agent since neither depends on the other's output.
 
 **First-run user checkpoint**: On the first ever build, the build agent presents a strategy (2–3 options with confidence ratings). Present these to the user and wait for approval before the build executes.
 
-**Subsequent runs**: The build agent uses the previously approved strategy and builds automatically. It writes to `.copilot/pipeline/build.md`.
+**Subsequent runs**: The build agent uses the previously approved strategy and builds automatically. It writes to `.copilot/pipeline/build.json`.
 
 ### 10. Local Deployment
 
 Invoke `local-deployment-agent` with:
-- Build report (`.copilot/pipeline/build.md`)
+- Build report (`.copilot/pipeline/build.json`)
 - Approved build strategy
 - Infrastructure requirements from the implementation plan
 
 **First-run user checkpoint**: On the first ever deployment, the local deployment agent presents a deployment strategy (2–3 options with confidence ratings). Present these to the user and wait for approval before deployment begins.
 
-**Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.md`.
+**Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.json`.
 
 ### 11. E2E Verification + Design Review + Back Tracker Phase 1 (Parallel)
 
@@ -259,10 +259,10 @@ After local deployment is confirmed healthy, **invoke all three agents in parall
 #### 11a. E2E Agent
 
 Invoke `e2e-agent` with:
-- Requirements (`.copilot/pipeline/requirements.md`)
-- Local deployment report (`.copilot/pipeline/local-deployment.md`)
-- Implementation report (`.copilot/pipeline/coding.md`)
-- Existing E2E test plan (`.copilot/pipeline/e2e-test-plan.md`, if it exists)
+- Requirements (`.copilot/pipeline/requirements.json`)
+- Local deployment report (`.copilot/pipeline/local-deployment.json`)
+- Implementation report (`.copilot/pipeline/coding.json`)
+- Existing E2E test plan (`.copilot/pipeline/e2e-test-plan.json`, if it exists)
 
 The E2E agent builds a test plan from the acceptance criteria and executes tests against the running environment using real tools (browser, CLI, database clients, logs).
 
@@ -272,54 +272,54 @@ The E2E agent builds a test plan from the acceptance criteria and executes tests
 
 **Remedy loop**: If the E2E agent finds gaps, it notifies you. Re-trigger the minimum necessary agents (coding → linting → tester → build → local deployment), then re-invoke the E2E agent. Repeat until all acceptance criteria have passing E2E evidence (maximum 5 loops before escalating to the user).
 
-The E2E agent writes to `.copilot/pipeline/e2e-testing.md` and `.copilot/pipeline/e2e-test-plan.md`.
+The E2E agent writes to `.copilot/pipeline/e2e-testing.json` and `.copilot/pipeline/e2e-test-plan.json`.
 
 #### 11b. Design Review Agent (runs in parallel with E2E)
 
 Invoke `design-review-agent` with:
-- Design acceptance criteria (`.copilot/pipeline/design-ac.md`)
-- Design specification (`.copilot/pipeline/design.md`)
-- Local deployment report (`.copilot/pipeline/local-deployment.md`)
+- Design acceptance criteria (`.copilot/pipeline/design-ac.json`)
+- Design specification (`.copilot/pipeline/design.json`)
+- Local deployment report (`.copilot/pipeline/local-deployment.json`)
 - Design system (`docs/knowledge/design.md`)
 
-**If `design-ac.md` is absent or empty** (no UI/UX changes were in scope, or the pipeline lane is `backend`, `hotfix`, or `config`): Skip the design-review-agent entirely.
+**If `design-ac.json` is absent or empty** (no UI/UX changes were in scope, or the pipeline lane is `backend`, `hotfix`, or `config`): Skip the design-review-agent entirely.
 
-The design-review-agent navigates the running application in a browser, takes screenshots, and verifies every Design AC from `.copilot/pipeline/design-ac.md`.
+The design-review-agent navigates the running application in a browser, takes screenshots, and verifies every Design AC from `.copilot/pipeline/design-ac.json`.
 
 **Design remedy loop**: If the design-review-agent finds failing ACs, route the failure report to the planning-agent and coding-agent for fixes. After the coding → linting → build → local-deployment cycle, re-invoke the design-review-agent. Repeat until all Design ACs pass (maximum 3 remedy loops per AC before escalating to the user).
 
 **Escalation**: If a design AC remains unresolved after 3 remedy loops, the design-review-agent escalates to the human in the loop. Pause the pipeline and present the full evidence. Do not advance to Back Tracker Phase 2 until the escalation is resolved.
 
-The design-review-agent writes to `.copilot/pipeline/design-review.md`.
+The design-review-agent writes to `.copilot/pipeline/design-review.json`.
 
 #### 11c. Back Tracker Phase 1 — Code Analysis (runs in parallel with E2E and Design Review)
 
 Invoke `back-tracker-agent` Phase 1 with:
-- Requirements (`.copilot/pipeline/requirements.md`)
-- Implementation report (`.copilot/pipeline/coding.md`)
-- Planning (`.copilot/pipeline/planning.md`)
-- Testing results (`.copilot/pipeline/testing.md`)
+- Requirements (`.copilot/pipeline/requirements.json`)
+- Implementation report (`.copilot/pipeline/coding.json`)
+- Planning (`.copilot/pipeline/planning.json`)
+- Testing results (`.copilot/pipeline/testing.json`)
 - All knowledge files from `docs/knowledge/`
 
-The back-tracker performs its code vs. requirements analysis immediately — reading the changed code, verifying business rules, checking data models, and reviewing historical consistency — without waiting for E2E or design-review results. It writes its preliminary findings to `.copilot/pipeline/back-tracker-preliminary.md`.
+The back-tracker performs its code vs. requirements analysis immediately — reading the changed code, verifying business rules, checking data models, and reviewing historical consistency — without waiting for E2E or design-review results. It writes its preliminary findings to `.copilot/pipeline/back-tracker-preliminary.json`.
 
 **This phase does not produce a final verdict.** It accelerates Phase 2 by completing the time-consuming code analysis in parallel.
 
 #### Three-Way Parallel Completion Gate
 
 **Do not invoke Back Tracker Phase 2** until ALL THREE have completed:
-- ✅ E2E agent has written results to `.copilot/pipeline/e2e-testing.md`
-- ✅ Design Review agent has written results to `.copilot/pipeline/design-review.md` (or was explicitly skipped for non-UI features)
-- ✅ Back Tracker Phase 1 has written code analysis to `.copilot/pipeline/back-tracker-preliminary.md`
+- ✅ E2E agent has written results to `.copilot/pipeline/e2e-testing.json`
+- ✅ Design Review agent has written results to `.copilot/pipeline/design-review.json` (or was explicitly skipped for non-UI features)
+- ✅ Back Tracker Phase 1 has written code analysis to `.copilot/pipeline/back-tracker-preliminary.json`
 
 ### 12. Back Tracker Phase 2 — Final Verdict
 
 After all three parallel agents complete, invoke `back-tracker-agent` Phase 2 with:
-- Requirements (`.copilot/pipeline/requirements.md`)
-- Implementation report (`.copilot/pipeline/coding.md`)
-- E2E test results (`.copilot/pipeline/e2e-testing.md`)
-- Design review results (`.copilot/pipeline/design-review.md`, if it exists)
-- Phase 1 preliminary analysis (`.copilot/pipeline/back-tracker-preliminary.md`)
+- Requirements (`.copilot/pipeline/requirements.json`)
+- Implementation report (`.copilot/pipeline/coding.json`)
+- E2E test results (`.copilot/pipeline/e2e-testing.json`)
+- Design review results (`.copilot/pipeline/design-review.json`, if it exists)
+- Phase 1 preliminary analysis (`.copilot/pipeline/back-tracker-preliminary.json`)
 - Pipeline state and all other pipeline artifacts
 
 The back-tracker combines its Phase 1 code analysis with the E2E and design-review evidence to produce the final requirements coverage verdict.
@@ -330,7 +330,7 @@ The back-tracker combines its Phase 1 code analysis with the E2E and design-revi
 
 **User checkpoint (show-stoppers)**: If the back-tracker finds show-stopper deviations, escalate to the user immediately. Do not proceed until the user provides guidance and the show-stoppers are resolved.
 
-**Approved**: The back-tracker agent writes to `.copilot/pipeline/back-tracker.md` and updates `docs/knowledge/requirements/past-decisions.md` with any new architectural decisions from this session.
+**Approved**: The back-tracker agent writes to `.copilot/pipeline/back-tracker.json` and updates `docs/knowledge/requirements/past-decisions.md` with any new architectural decisions from this session.
 
 ### 13. Create Pull Request
 
@@ -339,40 +339,40 @@ After the back-tracker gives an APPROVED verdict:
 1. Use the `github/*` tools to create a pull request from the current feature branch to the base branch (typically `main`).
 2. The PR title should match the original issue or prompt title.
 3. The PR description should include:
-   - A summary of what was implemented (from `.copilot/pipeline/requirements.md`)
-   - Key files changed (from `.copilot/pipeline/coding.md`)
-   - Test coverage summary (from `.copilot/pipeline/testing.md`)
+   - A summary of what was implemented (from `.copilot/pipeline/requirements.json`)
+   - Key files changed (from `.copilot/pipeline/coding.json`)
+   - Test coverage summary (from `.copilot/pipeline/testing.json`)
    - Link to the original issue (if applicable)
    - A checklist of pipeline stages completed with links to their pipeline output files
 
 4. Link the PR to the original issue if one was provided.
-5. Record the PR URL in `.copilot/pipeline/state.md`.
+5. Record the PR URL in `.copilot/pipeline/state.json`.
 
 If a PR already exists for the branch, update its description with the final pipeline summary instead of creating a new one.
 
 ### 14. Completion
 
-Update `.copilot/pipeline/state.md` with `Status: completed`.
+Update `.copilot/pipeline/state.json` with `Status: completed`.
 
 Present a final summary:
 ```
 ✅ Pipeline Complete!
 
-📋 Requirements: [link to .copilot/pipeline/requirements.md]
-🎨 Design: [link to .copilot/pipeline/design.md] (or "N/A — no UI/UX changes")
-📐 Design ACs: [link to .copilot/pipeline/design-ac.md] (or "N/A")
-🏗️  Planning: [link to .copilot/pipeline/planning.md]
-⚡ Performance + 🔒 Security: [link to .copilot/pipeline/performance.md] + [link to .copilot/pipeline/security.md]
+📋 Requirements: [link to .copilot/pipeline/requirements.json]
+🎨 Design: [link to .copilot/pipeline/design.json] (or "N/A — no UI/UX changes")
+📐 Design ACs: [link to .copilot/pipeline/design-ac.json] (or "N/A")
+🏗️  Planning: [link to .copilot/pipeline/planning.json]
+⚡ Performance + 🔒 Security: [link to .copilot/pipeline/performance.json] + [link to .copilot/pipeline/security.json]
 💻 Implementation: [summary of files changed]
-✨ Linting: [link to .copilot/pipeline/linting.md]
+✨ Linting: [link to .copilot/pipeline/linting.json]
 🧪 Testing: [test coverage summary]
 📚 Documentation: [what was updated]
-📦 Build: [link to .copilot/pipeline/build.md]
+📦 Build: [link to .copilot/pipeline/build.json]
 🚀 Local Deployment: [running service URLs]
-🔬 E2E Verification: [link to .copilot/pipeline/e2e-testing.md] — [N/N acceptance criteria passed]
-🎨 Design Review: [link to .copilot/pipeline/design-review.md] — [N/N design ACs passed] (or "N/A — no UI/UX changes")
-🔍 Back Tracker Phase 1: [link to .copilot/pipeline/back-tracker-preliminary.md] — [code analysis summary]
-✅ Back Tracker Phase 2: [link to .copilot/pipeline/back-tracker.md] — [verdict]
+🔬 E2E Verification: [link to .copilot/pipeline/e2e-testing.json] — [N/N acceptance criteria passed]
+🎨 Design Review: [link to .copilot/pipeline/design-review.json] — [N/N design ACs passed] (or "N/A — no UI/UX changes")
+🔍 Back Tracker Phase 1: [link to .copilot/pipeline/back-tracker-preliminary.json] — [code analysis summary]
+✅ Back Tracker Phase 2: [link to .copilot/pipeline/back-tracker.json] — [verdict]
 
 🔗 Pull Request: [PR link]
 ```
@@ -389,8 +389,8 @@ Invoking @<agent-name>...
 Context:
 - Main Input: <brief description>
 - Stage: <current stage>
-- Previous Stage Output: .copilot/pipeline/<previous>.md
-- Pipeline State: .copilot/pipeline/state.md
+- Previous Stage Output: .copilot/pipeline/<previous>.json
+- Pipeline State: .copilot/pipeline/state.json
 ```
 
 ---
@@ -402,7 +402,7 @@ Context:
 3. **Always checkpoint with the user** after Requirements, Design, Planning, and on the first run of Build and Local Deployment.
 4. **Keep the user informed** — announce each stage transition clearly with an emoji prefix.
 5. **Handle gaps gracefully** — if reference inputs are missing or ambiguous, pause and ask before proceeding (do not guess).
-6. **Write all pipeline outputs** to `.copilot/pipeline/` as Markdown (`.md`) files — never JSON. Use the `edit` tool. Read the file back to get an agent's output — never use the agent tool's return value as a substitute for the file.
+6. **Write all pipeline outputs** to `.copilot/pipeline/` as JSON (`.json`) files — never Markdown. Use the `edit` tool. Read the file back to get an agent's output — never use the agent tool's return value as a substitute for the file.
 7. **If any agent encounters a blocker**, surface it to the user immediately and pause the pipeline.
 8. **Performance & Security run in parallel** — invoke them together after Planning approval and wait for both before advancing to Coding. If either requires a planning revision, update the plan once and re-invoke both in parallel.
 9. **Security loops are automatic** (max 3) — if security is BLOCKED, loop back to planning without user interaction, but notify the user each time.
@@ -410,7 +410,7 @@ Context:
 11. **Build and deployment strategies persist** — once approved, the strategy docs are reused on subsequent runs without re-approval unless the architecture changes.
 12. **E2E complex scenarios require approval** — before the E2E agent executes destructive or multi-step scenarios, present them to the user and wait for sign-off.
 13. **Back Tracker Phase 2 is the final gate** — not complete until the back-tracker gives APPROVED. Minor deviations auto-loop (max 3); medium and show-stopper deviations require human guidance.
-14. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.md` is reused and extended on subsequent runs.
+14. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.json` is reused and extended on subsequent runs.
 15. **Design System Gate is a hard stop** — if the design-agent fires the gate (missing `docs/knowledge/design.md` with UI/UX in scope), halt the pipeline and demand the file.
 16. **Three-way parallel completion gate** — E2E, Design Review, and Back Tracker Phase 1 must all finish (or be explicitly skipped) before Back Tracker Phase 2 produces its verdict.
 17. **Design remedy loops are limited** — escalate to the human after 3 unresolved iterations for the same AC.
