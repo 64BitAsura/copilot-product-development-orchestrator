@@ -99,9 +99,24 @@ GitHub Issue / Prompt
 
 Click **Use this template → Create a new repository** to create your own product repository from this template.
 
-### 2. Fill in the knowledge harness
+### 2. Build the knowledge harness
 
-The `docs/knowledge/` folder is where you describe **your product**. Agents read these files to understand what they are building. Fill them in before running the pipeline for the first time:
+The `docs/knowledge/` folder is where you describe **your product**. Agents read these files to understand what they are building. You have two options:
+
+#### Option A — Bootstrap Agent (recommended)
+
+Run the **`bootstrap-agent`** once. It will:
+- Detect whether this is an existing codebase or a new project.
+- For existing repos: scan the code and extract as much knowledge as possible automatically.
+- Ask only the questions it cannot answer from the code.
+- Write every knowledge document for you.
+- Optionally move the knowledge folder to any path you choose (and update all agent references automatically).
+
+```
+@bootstrap-agent Set up the knowledge harness for this repository.
+```
+
+#### Option B — Fill in manually
 
 | File | What to put in it |
 |------|------------------|
@@ -133,6 +148,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 | Agent | File | Role | Stage |
 |-------|------|------|-------|
+| **Bootstrap** | `.github/agents/bootstrap-agent.agent.md` | Builds the `docs/knowledge/` harness — scans existing code or interviews you for a new project, writes all knowledge files, and optionally updates agent folder-path references to a custom location | Pre-pipeline (run once on setup) |
 | **Orchestrator** | `.github/agents/orchestrator.agent.md` | Coordinates the pipeline, applies fast-lane rules, manages all approvals and loops | Entry point |
 | **Refinement** | `.github/agents/refinement-agent.agent.md` | Analyses inputs, detects gaps, produces a refined unambiguous ticket | 1 |
 | **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility — skipped on non-UI lanes | 2 |
