@@ -125,6 +125,8 @@ These will be handed to the security agent for deep analysis.
 
 ### 5. Write Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/planning.md`. Do NOT write JSON.
+
 Write complete output to `.copilot/pipeline/planning.md`:
 
 ```markdown

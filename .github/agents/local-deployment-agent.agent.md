@@ -247,6 +247,8 @@ If all checks pass, report the running environment to the user with:
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/local-deployment.md` (and `.copilot/pipeline/local-deployment-strategy.md` on first run). Do NOT write JSON.
+
 Write output to `.copilot/pipeline/local-deployment.md`:
 
 ```markdown

@@ -105,6 +105,8 @@ This documentation will be handed to the documentation agent to finalize.
 
 ### 7. Write Completion Report
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/coding.md`. Do NOT write JSON.
+
 Write output to `.copilot/pipeline/coding.md`:
 
 ```markdown

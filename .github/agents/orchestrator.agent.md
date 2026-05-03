@@ -402,7 +402,7 @@ Context:
 3. **Always checkpoint with the user** after Requirements, Design, Planning, and on the first run of Build and Local Deployment.
 4. **Keep the user informed** — announce each stage transition clearly with an emoji prefix.
 5. **Handle gaps gracefully** — if reference inputs are missing or ambiguous, pause and ask before proceeding (do not guess).
-6. **Write all pipeline outputs** to `.copilot/pipeline/` so agents can read each other's work.
+6. **Write all pipeline outputs** to `.copilot/pipeline/` as Markdown (`.md`) files — never JSON. Use the `edit` tool. Read the file back to get an agent's output — never use the agent tool's return value as a substitute for the file.
 7. **If any agent encounters a blocker**, surface it to the user immediately and pause the pipeline.
 8. **Performance & Security run in parallel** — invoke them together after Planning approval and wait for both before advancing to Coding. If either requires a planning revision, update the plan once and re-invoke both in parallel.
 9. **Security loops are automatic** (max 3) — if security is BLOCKED, loop back to planning without user interaction, but notify the user each time.
@@ -420,6 +420,8 @@ Context:
 ---
 
 ## Pipeline State File Format
+
+> **Format**: Markdown only. Write using the `edit` tool. Do NOT write JSON.
 
 `.copilot/pipeline/state.md`:
 

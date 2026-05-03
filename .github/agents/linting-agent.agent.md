@@ -136,6 +136,8 @@ Repeat until the verification pass produces **zero errors** (warnings are accept
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/linting.md`. Do NOT write JSON.
+
 Write output to `.copilot/pipeline/linting.md`:
 
 ```markdown

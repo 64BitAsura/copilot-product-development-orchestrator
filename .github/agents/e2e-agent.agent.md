@@ -174,6 +174,8 @@ Regardless of outcome, write the approved test plan to `.copilot/pipeline/e2e-te
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/e2e-testing.md` and `.copilot/pipeline/e2e-test-plan.md`. Do NOT write JSON.
+
 Write complete output to `.copilot/pipeline/e2e-testing.md`:
 
 ```markdown

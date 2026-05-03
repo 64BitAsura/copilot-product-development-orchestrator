@@ -101,6 +101,8 @@ Define design budgets (constraints) for the implementation team:
 
 ### 5. Write Design Output
 
+> **Format**: Markdown only. Write using the `edit` tool. Do NOT write JSON.
+
 Write complete output to **both** `.copilot/pipeline/design.md` and `.copilot/pipeline/design-ac.md`.
 
 #### 5a. Design Specification — `.copilot/pipeline/design.md`

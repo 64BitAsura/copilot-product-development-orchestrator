@@ -105,6 +105,8 @@ Rate each finding:
 
 ## Output Format
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/security.md`. Do NOT write JSON.
+
 Write complete output to `.copilot/pipeline/security.md`:
 
 ```markdown

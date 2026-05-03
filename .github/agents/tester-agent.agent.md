@@ -161,6 +161,8 @@ it('returns 400 and does not execute when title contains SQL injection payload',
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/testing.md`. Do NOT write JSON.
+
 Write output to `.copilot/pipeline/testing.md`:
 
 ```markdown

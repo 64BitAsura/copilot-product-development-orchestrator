@@ -74,6 +74,8 @@ Using the knowledge harness:
 
 ### 4. Write Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/requirements.md`. Do NOT write JSON.
+
 Write your complete output to `.copilot/pipeline/requirements.md` in this format:
 
 ```markdown

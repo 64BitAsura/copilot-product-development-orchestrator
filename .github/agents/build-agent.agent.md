@@ -206,6 +206,8 @@ docker run --rm <image>:<tag> <health-check-command>
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/build.md` (and `.copilot/pipeline/build-strategy.md` on first run). Do NOT write JSON.
+
 Write output to `.copilot/pipeline/build.md`:
 
 ```markdown

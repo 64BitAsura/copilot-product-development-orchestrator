@@ -164,6 +164,8 @@ For each bottleneck found, assign a severity and calculate a **Confidence Rating
 
 ### 4. Write Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/performance.md`. Do NOT write JSON.
+
 Write complete output to `.copilot/pipeline/performance.md`.
 
 ---

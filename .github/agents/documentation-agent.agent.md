@@ -185,6 +185,8 @@ Keep README updates minimal — link to detailed docs rather than duplicating th
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/documentation.md`. Do NOT write JSON.
+
 Write output to `.copilot/pipeline/documentation.md`:
 
 ```markdown

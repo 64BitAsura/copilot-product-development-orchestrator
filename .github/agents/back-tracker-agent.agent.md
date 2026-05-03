@@ -46,7 +46,7 @@ Perform the full Code–Requirement Alignment analysis and Historical Consistenc
 
 **Do not wait for or attempt to read E2E results.** Leave the E2E Evidence column as `⏳ pending` in the matrix.
 
-Write your Phase 1 output to `.copilot/pipeline/back-tracker-preliminary.md` using this format:
+Write your Phase 1 output to `.copilot/pipeline/back-tracker-preliminary.md` using this format (Markdown, not JSON):
 
 ```markdown
 # Back Tracker — Phase 1: Code Analysis
@@ -251,9 +251,13 @@ When the orchestrator re-triggers agents after back-tracker feedback:
 
 ### Phase 1 Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/back-tracker-preliminary.md`. Do NOT write JSON.
+
 Write preliminary code analysis to `.copilot/pipeline/back-tracker-preliminary.md` (format described in Phase 1 section above).
 
 ### Phase 2 Output
+
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/back-tracker.md`. Do NOT write JSON.
 
 Write the final complete report to `.copilot/pipeline/back-tracker.md`:
 

@@ -104,6 +104,8 @@ Write a comprehensive report to `.copilot/pipeline/design-review.md` (see Output
 
 ## Output
 
+> **Format**: Markdown only. Write using the `edit` tool to `.copilot/pipeline/design-review.md`. Do NOT write JSON.
+
 Write complete output to `.copilot/pipeline/design-review.md`:
 
 ```markdown
