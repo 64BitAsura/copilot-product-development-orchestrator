@@ -1,6 +1,6 @@
 # Requirements Knowledge Base
 
-> **Purpose**: This folder is the requirements agent's primary knowledge source. It contains templates, guidelines, past decisions, and approved requirement patterns that the requirements agent uses to produce consistent, high-quality output.
+> **Purpose**: This folder is the refinement agent's primary knowledge source. It contains templates, guidelines, past decisions, and approved requirement patterns that the refinement agent uses to produce consistent, high-quality output.
 
 ---
 
@@ -18,9 +18,9 @@
 
 ---
 
-## How the Requirements Agent Uses This Folder
+## How the Refinement Agent Uses This Folder
 
-1. **On every invocation**, the requirements agent reads `personas.md` and `past-decisions.md` to ensure new requirements align with established product direction.
+1. **On every invocation**, the refinement agent reads `personas.md` and `past-decisions.md` to ensure new requirements align with established product direction.
 2. **During gap analysis**, the agent uses `gap-analysis-checklist.md` as its checklist structure.
 3. **When writing requirements**, the agent follows `requirement-template.md`.
 4. **When writing acceptance criteria**, the agent follows `acceptance-criteria-guide.md`.
@@ -30,7 +30,7 @@
 
 ## How to Update This Folder
 
-- After every approved requirements session, the requirements agent updates `past-decisions.md` with the key decisions made.
+- After every approved requirements session, the refinement agent updates `past-decisions.md` with the key decisions made.
 - When a new user persona is identified, add it to `personas.md`.
 - When a new pattern is approved (e.g., a new way of handling pagination), add it to `approved-patterns.md`.
 - The `past-decisions.md` file is append-only — never delete entries, only add new ones.

@@ -1,6 +1,6 @@
 # Gap Analysis Checklist
 
-> The requirements agent uses this checklist on every input before writing requirements. A gap is any missing information that would force the coding or design agent to make an assumption. Assumptions lead to wrong implementations.
+> The refinement agent uses this checklist on every input before writing requirements. A gap is any missing information that would force the coding or design agent to make an assumption. Assumptions lead to wrong implementations.
 
 ---
 

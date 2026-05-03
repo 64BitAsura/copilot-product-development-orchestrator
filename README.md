@@ -334,7 +334,7 @@ docs/knowledge/
 ├── security-best-practices.md # Security patterns (agents append findings here)
 ├── testing-guidelines.md      # Test standards (agents append framework patterns here)
 │
-├── requirements/              # Requirements agent's knowledge base
+├── requirements/              # Refinement agent's knowledge base
 │   ├── README.md
 │   ├── requirement-template.md
 │   ├── gap-analysis-checklist.md

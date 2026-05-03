@@ -9,7 +9,7 @@
 **Session ID**: <!-- orchestrator-assigned session ID -->  
 **Issue / Input**: <!-- GitHub issue URL or prompt summary -->  
 **Date**: <!-- ISO 8601 date -->  
-**Requirements Agent Version**: <!-- git SHA of requirements-agent.agent.md -->  
+**Refinement Agent Version**: <!-- git SHA of refinement-agent.agent.md -->  
 **Status**: `draft` | `gap-analysis` | `awaiting-approval` | `approved`
 
 ---
@@ -163,4 +163,4 @@ _If no gaps: write "None — requirements are complete."_
 | Approver | Status | Timestamp |
 |---------|--------|-----------|
 | User | `pending` \| `approved` \| `revisions-requested` | <!-- timestamp --> |
-| Requirements Agent | `complete` | <!-- timestamp --> |
+| Refinement Agent | `complete` | <!-- timestamp --> |
