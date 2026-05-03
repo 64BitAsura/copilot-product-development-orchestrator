@@ -1,0 +1,814 @@
+name: "Copilot Product-Development Pipeline"
+
+# Triggered manually (pass in the issue number to process) or automatically
+# when a pipeline state file is initialised by the orchestrator.
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "GitHub issue number to process through the pipeline"
+        required: true
+        type: number
+      lane:
+        description: "Pipeline lane (full | backend | hotfix | config)"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - full
+          - backend
+          - hotfix
+          - config
+
+  push:
+    paths:
+      - ".copilot/pipeline/state.json"
+
+# Only one pipeline run per issue at a time.
+concurrency:
+  group: copilot-pipeline-${{ github.event.inputs.issue_number || 'push' }}
+  cancel-in-progress: false
+
+env:
+  PIPELINE_DIR: .copilot/pipeline
+  ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+  LANE: ${{ github.event.inputs.lane || 'full' }}
+
+jobs:
+
+  # ── Stage 1: Requirements ────────────────────────────────────────────────────
+  refinement:
+    name: "Stage 1 · Refinement"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      requirements_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Invoke refinement-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@refinement-agent Process issue #${ISSUE_NUMBER} and write output to ${PIPELINE_DIR}/requirements.json"
+
+      - name: Wait for requirements.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/requirements.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::requirements.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: requirements
+          path: ${{ env.PIPELINE_DIR }}/requirements.json
+
+  # ── Stage 2: Design (skipped on backend / hotfix / config lanes) ─────────────
+  design:
+    name: "Stage 2 · Design"
+    runs-on: ubuntu-latest
+    needs: refinement
+    if: ${{ github.event.inputs.lane == 'full' || github.event.inputs.lane == '' }}
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      design_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: requirements
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke design-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@design-agent Read ${PIPELINE_DIR}/requirements.json and write UX/UI spec to ${PIPELINE_DIR}/design.json and design acceptance criteria to ${PIPELINE_DIR}/design-ac.json"
+
+      - name: Wait for design.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/design.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::design.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: design
+          path: |
+            ${{ env.PIPELINE_DIR }}/design.json
+            ${{ env.PIPELINE_DIR }}/design-ac.json
+
+  # ── Stage 3: Planning ────────────────────────────────────────────────────────
+  planning:
+    name: "Stage 3 · Planning"
+    runs-on: ubuntu-latest
+    needs:
+      - refinement
+      - design
+    # Run even when design is skipped (design job outputs empty string when skipped)
+    if: always() && needs.refinement.result == 'success'
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      planning_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: requirements
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Download design artifact (if produced)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: design
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke planning-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@planning-agent Read ${PIPELINE_DIR}/requirements.json (and ${PIPELINE_DIR}/design.json if present) and write the technical implementation plan to ${PIPELINE_DIR}/planning.json"
+
+      - name: Wait for planning.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/planning.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::planning.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: planning
+          path: ${{ env.PIPELINE_DIR }}/planning.json
+
+  # ── Stage 4 (parallel): Performance + Security ──────────────────────────────
+  # Both jobs run concurrently as soon as planning is approved.
+
+  performance:
+    name: "Stage 4a · Performance (parallel)"
+    runs-on: ubuntu-latest
+    needs: planning
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      performance_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: planning
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke performance-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@performance-agent Read ${PIPELINE_DIR}/planning.json and write bottleneck findings to ${PIPELINE_DIR}/performance.json"
+
+      - name: Wait for performance.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/performance.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::performance.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: performance
+          path: ${{ env.PIPELINE_DIR }}/performance.json
+
+  security:
+    name: "Stage 4b · Security (parallel)"
+    runs-on: ubuntu-latest
+    needs: planning
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      security_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: planning
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke security-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@security-agent Read ${PIPELINE_DIR}/planning.json and write security findings to ${PIPELINE_DIR}/security.json"
+
+      - name: Wait for security.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/security.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::security.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security
+          path: ${{ env.PIPELINE_DIR }}/security.json
+
+  # ── Stage 5: Coding (gated on BOTH performance AND security clearing) ────────
+  coding:
+    name: "Stage 5 · Coding"
+    runs-on: ubuntu-latest
+    needs:
+      - performance
+      - security
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      coding_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: planning
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: performance
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: security
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke coding-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@coding-agent Read ${PIPELINE_DIR}/planning.json, ${PIPELINE_DIR}/performance.json, and ${PIPELINE_DIR}/security.json. Implement the full solution and write the implementation report to ${PIPELINE_DIR}/coding.json"
+
+      - name: Wait for coding.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/coding.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::coding.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}/coding.json
+
+  # ── Stage 6: Linting ─────────────────────────────────────────────────────────
+  linting:
+    name: "Stage 6 · Linting"
+    runs-on: ubuntu-latest
+    needs: coding
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      linting_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke linting-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@linting-agent Read ${PIPELINE_DIR}/coding.json. Run all project lint/format tools, auto-fix issues, and write the linting report to ${PIPELINE_DIR}/linting.json"
+
+      - name: Wait for linting.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/linting.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::linting.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linting
+          path: ${{ env.PIPELINE_DIR }}/linting.json
+
+  # ── Stage 7: Testing ─────────────────────────────────────────────────────────
+  testing:
+    name: "Stage 7 · Testing"
+    runs-on: ubuntu-latest
+    needs: linting
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      testing_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke tester-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@tester-agent Read ${PIPELINE_DIR}/coding.json. Generate and run the full test suite (≥80 % coverage). Write results to ${PIPELINE_DIR}/testing.json"
+
+      - name: Wait for testing.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/testing.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::testing.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: testing
+          path: ${{ env.PIPELINE_DIR }}/testing.json
+
+  # ── Stage 8 (parallel): Documentation + Build ────────────────────────────────
+  # Documentation and Build can overlap — both start as soon as testing passes.
+
+  documentation:
+    name: "Stage 8a · Documentation (parallel)"
+    runs-on: ubuntu-latest
+    needs: testing
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      documentation_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: testing
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke documentation-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@documentation-agent Read ${PIPELINE_DIR}/coding.json and ${PIPELINE_DIR}/testing.json. Update OpenAPI spec, write changelog entry, and produce ${PIPELINE_DIR}/documentation.json"
+
+      - name: Wait for documentation.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/documentation.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::documentation.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: ${{ env.PIPELINE_DIR }}/documentation.json
+
+  build:
+    name: "Stage 8b · Build (parallel)"
+    runs-on: ubuntu-latest
+    needs: testing
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      build_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: testing
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke build-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@build-agent Read ${PIPELINE_DIR}/coding.json. Build cacheable, composable artifacts and write the artifact inventory to ${PIPELINE_DIR}/build.json"
+
+      - name: Wait for build.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/build.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::build.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ${{ env.PIPELINE_DIR }}/build.json
+
+  # ── Stage 9: Local Deployment (gated on Build) ───────────────────────────────
+  local-deployment:
+    name: "Stage 9 · Local Deployment"
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      deployment_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Install Playwright browsers
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Invoke local-deployment-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@local-deployment-agent Read ${PIPELINE_DIR}/build.json. Deploy all services locally and write health-check results to ${PIPELINE_DIR}/local-deployment.json"
+
+      - name: Wait for local-deployment.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/local-deployment.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::local-deployment.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: local-deployment
+          path: ${{ env.PIPELINE_DIR }}/local-deployment.json
+
+  # ── Stage 10 (parallel): E2E + Design Review + Back Tracker Phase 1 ──────────
+  # All three start as soon as local-deployment is healthy.
+  # E2E and Design Review use a live browser against localhost.
+  # Back Tracker Phase 1 analyses code only (no browser needed).
+
+  e2e:
+    name: "Stage 10a · E2E Testing (parallel)"
+    runs-on: ubuntu-latest
+    needs: local-deployment
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      e2e_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: local-deployment
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: requirements
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Install Playwright browsers
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Invoke e2e-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@e2e-agent Read ${PIPELINE_DIR}/local-deployment.json and ${PIPELINE_DIR}/requirements.json. Verify every acceptance criterion end-to-end against the running deployment and write results to ${PIPELINE_DIR}/e2e-testing.json"
+
+      - name: Wait for e2e-testing.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/e2e-testing.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::e2e-testing.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-testing
+          path: ${{ env.PIPELINE_DIR }}/e2e-testing.json
+
+  design-review:
+    name: "Stage 10b · Design Review (parallel, UI lanes only)"
+    runs-on: ubuntu-latest
+    needs: local-deployment
+    if: ${{ github.event.inputs.lane == 'full' || github.event.inputs.lane == '' }}
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      design_review_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: local-deployment
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: design
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Install Playwright browsers
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Invoke design-review-agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@design-review-agent Read ${PIPELINE_DIR}/local-deployment.json and ${PIPELINE_DIR}/design-ac.json. Verify every Design Acceptance Criterion against the running UI and write pass/fail evidence to ${PIPELINE_DIR}/design-review.json"
+
+      - name: Wait for design-review.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/design-review.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::design-review.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: design-review
+          path: ${{ env.PIPELINE_DIR }}/design-review.json
+
+  back-tracker-phase-1:
+    name: "Stage 10c · Back Tracker Phase 1 — code analysis (parallel)"
+    runs-on: ubuntu-latest
+    needs: local-deployment
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      back_tracker_phase1_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coding
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: requirements
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke back-tracker-agent (phase 1 — code-only analysis)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@back-tracker-agent Phase 1: Read ${PIPELINE_DIR}/coding.json and ${PIPELINE_DIR}/requirements.json. Perform code-vs-requirements analysis (E2E results not yet available) and write preliminary findings to ${PIPELINE_DIR}/back-tracker-preliminary.json"
+
+      - name: Wait for back-tracker-preliminary.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 120); do
+            if [ -f "$PIPELINE_DIR/back-tracker-preliminary.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::back-tracker-preliminary.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: back-tracker-preliminary
+          path: ${{ env.PIPELINE_DIR }}/back-tracker-preliminary.json
+
+  # ── Stage 11: Back Tracker Phase 2 (final verdict) ───────────────────────────
+  # Waits for all three parallel Stage-10 jobs to complete.
+
+  back-tracker-phase-2:
+    name: "Stage 11 · Back Tracker Phase 2 — final verdict"
+    runs-on: ubuntu-latest
+    needs:
+      - e2e
+      - design-review
+      - back-tracker-phase-1
+    if: always() && needs.e2e.result == 'success' && needs.back-tracker-phase-1.result == 'success'
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      verdict_ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-testing
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: back-tracker-preliminary
+          path: ${{ env.PIPELINE_DIR }}
+      - name: Download design-review artifact (if produced)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: design-review
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Invoke back-tracker-agent (phase 2 — final verdict)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "@back-tracker-agent Phase 2: Read ${PIPELINE_DIR}/back-tracker-preliminary.json, ${PIPELINE_DIR}/e2e-testing.json, and (if present) ${PIPELINE_DIR}/design-review.json. Combine all results and write the final requirements-coverage verdict to ${PIPELINE_DIR}/back-tracker.json"
+
+      - name: Wait for back-tracker.json
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in $(seq 1 60); do
+            if [ -f "$PIPELINE_DIR/back-tracker.json" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::back-tracker.json was not produced within the timeout"
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: back-tracker
+          path: ${{ env.PIPELINE_DIR }}/back-tracker.json
+
+  # ── Stage 12: Open Pull Request ──────────────────────────────────────────────
+  pull-request:
+    name: "Stage 12 · Open Pull Request"
+    runs-on: ubuntu-latest
+    needs:
+      - back-tracker-phase-2
+      - documentation
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: back-tracker
+          path: ${{ env.PIPELINE_DIR }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: ${{ env.PIPELINE_DIR }}
+
+      - name: Open pull request via GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERDICT=$(jq -r '.verdict // "approved"' "$PIPELINE_DIR/back-tracker.json")
+          SUMMARY=$(jq -r '.summary // "Pipeline completed successfully."' "$PIPELINE_DIR/back-tracker.json")
+
+          if [ "$VERDICT" != "approved" ]; then
+            echo "::error::Back Tracker verdict is '${VERDICT}' — pull request creation blocked."
+            exit 1
+          fi
+
+          BRANCH="copilot/issue-${ISSUE_NUMBER}"
+          gh pr create \
+            --title "feat: resolve issue #${ISSUE_NUMBER}" \
+            --body "Closes #${ISSUE_NUMBER}
+
+## Pipeline summary
+
+${SUMMARY}
+
+> Generated automatically by the Copilot Product-Development Pipeline." \
+            --head "$BRANCH" \
+            --base "$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')" \
+            || echo "PR may already exist for this branch."
