@@ -18,7 +18,7 @@
 |-------|---------|---------|
 | Backend | TypeScript | 5.x |
 | Frontend | TypeScript | 5.x |
-| Database migrations | SQL (PostgreSQL) | — |
+| Schema documentation | Markdown | — |
 | Infrastructure | YAML (GitHub Actions) | — |
 
 ---
@@ -54,11 +54,10 @@
 
 | Category | Technology | Version | Notes |
 |----------|-----------|---------|-------|
-| Primary database | PostgreSQL | 15+ | |
-| UUID generation | pgcrypto (`gen_random_uuid()`) | — | Required extension |
-| Text search | pg_trgm | — | Required extension |
-| Connection pooling | — | — | To be selected per feature |
-| Migrations | Raw SQL files | — | See `docs/knowledge/schema/migrations-guide.md` |
+| Primary datastore | _(to be decided)_ | — | Choose the right DB for your product's access patterns |
+| Cache | _(to be decided)_ | — | |
+| Search index | _(to be decided)_ | — | |
+| Schema change tracking | Markdown change records | — | See `docs/knowledge/schema/migrations-guide.md` |
 
 ---
 

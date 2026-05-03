@@ -1,4 +1,7 @@
--- This folder holds incremental schema migrations.
--- The initial schema is defined in docs/knowledge/schema/base-schema.sql.
--- New migrations are added as: YYYYMMDD_NNN_description.sql
--- See docs/knowledge/schema/migrations-guide.md for instructions.
+This folder holds incremental schema change records.
+
+The initial data model is defined in `docs/knowledge/schema/schema.md`.
+
+New change records are added as `YYYYMMDD_NNN_description.md`.
+
+See `docs/knowledge/schema/migrations-guide.md` for instructions.
