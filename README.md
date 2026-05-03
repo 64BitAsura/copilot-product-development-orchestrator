@@ -99,9 +99,24 @@ GitHub Issue / Prompt
 
 Click **Use this template → Create a new repository** to create your own product repository from this template.
 
-### 2. Fill in the knowledge harness
+### 2. Build the knowledge harness
 
-The `docs/knowledge/` folder is where you describe **your product**. Agents read these files to understand what they are building. Fill them in before running the pipeline for the first time:
+The `docs/knowledge/` folder is where you describe **your product**. Agents read these files to understand what they are building. You have two options:
+
+#### Option A — Bootstrap Agent (recommended)
+
+Run the **`bootstrap-agent`** once. It will:
+- Detect whether this is an existing codebase or a new project.
+- For existing repos: scan the code and extract as much knowledge as possible automatically.
+- Ask only the questions it cannot answer from the code.
+- Write every knowledge document for you.
+- Optionally move the knowledge folder to any path you choose (and update all agent references automatically).
+
+```
+@bootstrap-agent Set up the knowledge harness for this repository.
+```
+
+#### Option B — Fill in manually
 
 | File | What to put in it |
 |------|------------------|
@@ -113,7 +128,7 @@ The `docs/knowledge/` folder is where you describe **your product**. Agents read
 | `docs/knowledge/blueprint/domain-model.md` | Your core entities, their relationships, and ubiquitous language |
 | `docs/knowledge/blueprint/integration-points.md` | All external services your product connects to |
 | `docs/knowledge/blueprint/capability-matrix.md` | Which module/service owns each product capability |
-| `docs/knowledge/schema/base-schema.sql` | Your PostgreSQL database schema (starter tables are provided) |
+| `docs/knowledge/schema/schema.md` | Your data model — entities, fields, relationships, and access patterns (database-agnostic) |
 
 The other files (`design-principles.md`, `tech-stack.md`, `security-best-practices.md`, `testing-guidelines.md`) contain sensible defaults — update them to match your stack.
 
@@ -133,6 +148,7 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 
 | Agent | File | Role | Stage |
 |-------|------|------|-------|
+| **Bootstrap** | `.github/agents/bootstrap-agent.agent.md` | Builds the `docs/knowledge/` harness — scans existing code or interviews you for a new project, writes all knowledge files, and optionally updates agent folder-path references to a custom location | Pre-pipeline (run once on setup) |
 | **Orchestrator** | `.github/agents/orchestrator.agent.md` | Coordinates the pipeline, applies fast-lane rules, manages all approvals and loops | Entry point |
 | **Refinement** | `.github/agents/refinement-agent.agent.md` | Analyses inputs, detects gaps, produces a refined unambiguous ticket | 1 |
 | **Design** | `.github/agents/design-agent.agent.md` | UX flows, UI components, design budgets, accessibility — skipped on non-UI lanes | 2 |
@@ -188,7 +204,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | Model entities and aggregates correctly |
 | `blueprint/integration-points.md` | Know what external services are involved |
 | `blueprint/capability-matrix.md` | Assign responsibilities to the right module/service |
-| `schema/base-schema.sql` | Understand the existing data model |
+| `schema/schema.md` | Understand the existing data model |
 | `schema/erd.md` | Visualise entity relationships |
 | `schema/schema-conventions.md` | Follow naming and design patterns |
 | `requirements/past-decisions.md` | Respect historical architectural decisions |
@@ -200,7 +216,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `security-best-practices.md` | Apply and extend the product's security rules |
 | `blueprint/integration-points.md` | Identify trust boundaries at external connections |
 | `blueprint/domain-model.md` | Find sensitive entities needing access control |
-| `schema/base-schema.sql` | Check for insecure schema patterns |
+| `schema/schema.md` | Check for insecure data model patterns |
 
 ### Coding Agent
 | File | Why |
@@ -209,7 +225,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | Map code to domain entities correctly |
 | `blueprint/integration-points.md` | Implement integrations to the right external services |
 | `blueprint/capability-matrix.md` | Put code in the right module/service |
-| `schema/base-schema.sql` | Write queries/ORM models matching the real schema |
+| `schema/schema.md` | Write queries/ORM models matching the real data model |
 | `schema/schema-conventions.md` | Follow naming and design conventions |
 | `schema/migrations-guide.md` | Write proper migrations when changing the schema |
 | `security-best-practices.md` | Implement secure patterns from the start |
@@ -221,7 +237,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `testing-guidelines.md` | Follow the project's test standards and coverage thresholds |
 | `tech-stack.md` | Use the correct test frameworks |
 | `blueprint/domain-model.md` | Write tests that reflect real business rules |
-| `schema/base-schema.sql` | Set up correct fixtures and seed data |
+| `schema/schema.md` | Set up correct fixtures and seed data |
 | `requirements/acceptance-criteria-guide.md` | Derive test cases from acceptance criteria |
 
 ### Documentation Agent
@@ -278,7 +294,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 
 ### Summary Matrix
 
-| Knowledge File | Req | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | DrRev | BackTrack |
+| Knowledge File | Rfn | Design | Plan | Perf | Sec | Code | Lint | Test | Docs | Build | Deploy | E2E | DrRev | BackTrack |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `product-vision.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
 | `key-features.md` | ✅ | ✅ | ✅ | | | | | | ✅ | | | | | ✅ |
@@ -297,7 +313,7 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | | | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | | | |
 | `blueprint/integration-points.md` | | | ✅ | ✅ | ✅ | ✅ | | | ✅ | | ✅ | ✅ | | |
 | `blueprint/capability-matrix.md` | | | ✅ | | | ✅ | | | | | | | | |
-| `schema/base-schema.sql` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | | |
+| `schema/schema.md` | | | ✅ | | ✅ | ✅ | | ✅ | | | | | | |
 | `schema/erd.md` | | | ✅ | | | | | | | | | | | |
 | `schema/schema-conventions.md` | | | ✅ | | | ✅ | | | | | | | | |
 | `schema/migrations-guide.md` | | | | | | ✅ | | | | | | | | |
@@ -334,13 +350,13 @@ docs/knowledge/
 │   ├── integration-points.md  # ✏️ YOUR external service integrations
 │   └── capability-matrix.md   # ✏️ Which module/service owns each capability
 │
-└── schema/                    # YOUR product's database schema
+└── schema/                    # YOUR product's data model
     ├── README.md
-    ├── base-schema.sql        # ✏️ YOUR PostgreSQL schema (starter tables provided)
+    ├── schema.md              # ✏️ YOUR entities, fields, relationships (database-agnostic)
     ├── erd.md                 # ✏️ YOUR Entity Relationship Diagram
     ├── schema-conventions.md  # Naming rules and design patterns
-    ├── migrations-guide.md    # How to write and run migrations
-    └── migrations/            # Incremental migration files (one per schema change)
+    ├── migrations-guide.md    # How to document and track schema changes
+    └── migrations/            # Incremental change records (one per schema change)
 ```
 
 > **✏️** = files you must fill in before running the pipeline for the first time.
@@ -353,31 +369,31 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 
 ```
 .copilot/pipeline/
-├── state.md                     # Current stage, status, session ID
-├── requirements.md              # Refinement agent output
-├── design.md                    # Design agent output
-├── design-ac.md                 # Design acceptance criteria (verified by design-review-agent)
-├── planning.md                  # Planning agent output
-├── performance.md               # Performance agent output (bottleneck findings)
-├── security.md                  # Security agent output
-├── coding.md                    # Coding agent implementation report
-├── linting.md                   # Linting agent report (issues fixed, loops completed)
-├── testing.md                   # Tester agent report (coverage, failures)
-├── documentation.md             # Documentation agent report
-├── build.md                     # Build agent report (artifact inventory, sizes)
-├── local-deployment.md          # Local deployment agent report (running services)
-├── e2e-testing.md               # E2E agent test results (scenario outcomes, gaps found)
-├── design-review.md             # Design Review agent report (DAC pass/fail evidence)
-├── back-tracker-preliminary.md  # Back Tracker Phase 1 report (code analysis, runs in parallel)
-├── back-tracker.md              # Back Tracker Phase 2 report (final requirements coverage verdict)
+├── state.json                     # Current stage, status, session ID
+├── requirements.json              # Refinement agent output
+├── design.json                    # Design agent output
+├── design-ac.json                 # Design acceptance criteria (verified by design-review-agent)
+├── planning.json                  # Planning agent output
+├── performance.json               # Performance agent output (bottleneck findings)
+├── security.json                  # Security agent output
+├── coding.json                    # Coding agent implementation report
+├── linting.json                   # Linting agent report (issues fixed, loops completed)
+├── testing.json                   # Tester agent report (coverage, failures)
+├── documentation.json             # Documentation agent report
+├── build.json                     # Build agent report (artifact inventory, sizes)
+├── local-deployment.json          # Local deployment agent report (running services)
+├── e2e-testing.json               # E2E agent test results (scenario outcomes, gaps found)
+├── design-review.json             # Design Review agent report (DAC pass/fail evidence)
+├── back-tracker-preliminary.json  # Back Tracker Phase 1 report (code analysis, runs in parallel)
+├── back-tracker.json              # Back Tracker Phase 2 report (final requirements coverage verdict)
 │
 │   ── Persistent memory (survive across pipeline sessions) ──
-├── build-strategy.md            # Approved build strategy — reused on every subsequent build
-├── local-deployment-strategy.md # Approved deployment strategy — reused on every subsequent deploy
-└── e2e-test-plan.md             # Approved E2E test plan — extended on every subsequent run
+├── build-strategy.json            # Approved build strategy — reused on every subsequent build
+├── local-deployment-strategy.json # Approved deployment strategy — reused on every subsequent deploy
+└── e2e-test-plan.json             # Approved E2E test plan — extended on every subsequent run
 ```
 
-> **Persistent memory files** (`build-strategy.md`, `local-deployment-strategy.md`, and `e2e-test-plan.md`) are written once when the human approves the strategy/plan on the first run. On all subsequent pipeline runs the relevant agents read these files directly and build on them without re-asking for approval — unless the architecture or requirements change significantly enough to warrant a new strategy.
+> **Persistent memory files** (`build-strategy.json`, `local-deployment-strategy.json`, and `e2e-test-plan.json`) are written once when the human approves the strategy/plan on the first run. On all subsequent pipeline runs the relevant agents read these files directly and build on them without re-asking for approval — unless the architecture or requirements change significantly enough to warrant a new strategy.
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Fill this in.** The domain model defines the core concepts of YOUR product — the entities, their attributes, and how they relate. Every agent uses this as the canonical vocabulary. When writing code, designing UI, or specifying requirements, use the terms defined here.
 >
-> This model should be reflected in your database schema (`docs/knowledge/schema/base-schema.sql`).
+> This model should be reflected in your data schema (`docs/knowledge/schema/schema.md`).
 
 ---
 
