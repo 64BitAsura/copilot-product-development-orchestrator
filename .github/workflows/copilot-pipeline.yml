@@ -32,6 +32,12 @@ concurrency:
 
 env:
   PIPELINE_DIR: .copilot/pipeline
+  # Number of polling iterations before timing out.
+  # Each iteration waits 30 seconds, so:
+  #   POLL_DEFAULT  = 60  iterations = 30 minutes
+  #   POLL_EXTENDED = 120 iterations = 60 minutes (used for long-running agents)
+  POLL_DEFAULT: "60"
+  POLL_EXTENDED: "120"
 
 jobs:
 
@@ -64,7 +70,7 @@ jobs:
             exit 1
           fi
           echo "issue_number=$ISSUE" >> "$GITHUB_OUTPUT"
-          echo "lane=$LANE"          >> "$GITHUB_OUTPUT"
+          echo "lane=$LANE" >> "$GITHUB_OUTPUT"
 
   # ── Stage 1: Requirements ────────────────────────────────────────────────────
   refinement:
@@ -93,7 +99,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/requirements.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -143,7 +149,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/design.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -204,7 +210,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/planning.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -255,7 +261,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/performance.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -303,7 +309,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/security.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -361,7 +367,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/coding.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -410,7 +416,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/linting.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -459,7 +465,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/testing.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -514,7 +520,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/documentation.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -566,7 +572,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/build.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -615,7 +621,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/local-deployment.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -675,7 +681,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/e2e-testing.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -731,7 +737,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/design-review.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -783,7 +789,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$POLL_EXTENDED"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/back-tracker-preliminary.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -853,7 +859,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 "$POLL_DEFAULT"); do
             git pull --rebase --autostash -q
             if [ -f "$PIPELINE_DIR/back-tracker.json" ]; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
