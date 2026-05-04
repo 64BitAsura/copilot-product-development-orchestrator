@@ -24,7 +24,7 @@ GitHub Issue / Prompt
          │
          ▼
 ┌─────────────────┐     gaps?
-│  Requirements   │────────────► user (pause & ask)
+│  Refinement   │────────────► user (pause & ask)
 └────────┬────────┘
          │ approved
          ▼
