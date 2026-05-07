@@ -54,10 +54,12 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_SRC="$SCRIPT_DIR/.github/agents"
+SCRIPTS_SRC="$SCRIPT_DIR/.github/scripts"
 SETUP_SRC="$SCRIPT_DIR/.github/workflows/copilot-setup-steps.yml"
 DOCS_SRC="$SCRIPT_DIR/docs/knowledge"
 
 [ -d "$AGENTS_SRC" ]   || err "Agent folder not found: $AGENTS_SRC"
+[ -d "$SCRIPTS_SRC" ]  || err "Scripts folder not found: $SCRIPTS_SRC"
 [ -f "$SETUP_SRC" ]    || err "Setup workflow not found: $SETUP_SRC"
 if $INCLUDE_DOCS; then
   [ -d "$DOCS_SRC" ]   || err "docs/knowledge folder not found: $DOCS_SRC"
@@ -99,6 +101,10 @@ info "Copying agent definitions …"
 mkdir -p .github/agents
 cp "$AGENTS_SRC"/*.agent.md .github/agents/
 
+info "Copying helper scripts …"
+mkdir -p .github/scripts
+cp "$SCRIPTS_SRC"/* .github/scripts/
+
 info "Copying copilot-setup-steps.yml …"
 mkdir -p .github/workflows
 cp "$SETUP_SRC" .github/workflows/copilot-setup-steps.yml
@@ -124,7 +130,8 @@ else
 Exported from https://github.com/${SOURCE_REPO} @ ${SOURCE_SHA}
 
 Includes:
-- .github/agents/ — all 15 custom agent definitions
+- .github/agents/ — all 17 custom agent definitions
+- .github/scripts/ — helper scripts including CRAP tool setup
 - .github/workflows/copilot-setup-steps.yml — Copilot environment setup${DOCS_LINE}"
 
   info "Pushing branch '$BRANCH' to $TARGET_REPO …"
@@ -149,7 +156,8 @@ Exported from [\`${SOURCE_REPO}\`](https://github.com/${SOURCE_REPO}) at commit 
 
 | Path | Purpose |
 |------|---------|
-| \`.github/agents/\` | 15 custom agent definitions (orchestrator, requirements, design, planning, performance, security, coding, linting, tester, documentation, build, local-deployment, e2e, design-review, back-tracker) |
+| \`.github/agents/\` | 17 custom agent definitions (bootstrap, orchestrator, refinement, design, planning, performance, security, coding, linting, tester, review, documentation, build, local-deployment, e2e, design-review, back-tracker) |
+| \`.github/scripts/\` | Helper scripts including CRAP tool setup and the portable \`crap-tool\` CLI |
 | \`.github/workflows/copilot-setup-steps.yml\` | Installs all agent dependencies (Node.js, Python, Playwright, Docker, GitHub CLI) |${DOCS_ROW}
 
 ## Next steps

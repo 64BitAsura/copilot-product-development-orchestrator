@@ -11,8 +11,8 @@ This repository defines a **multi-agent product development pipeline** built on 
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
   requirements → design → planning → performance+security (parallel) → coding → linting → testing →
-  documentation → build → local-deployment → e2e + design-review + back-tracker-phase-1 (parallel)
-  → back-tracker-phase-2 → pull request.
+  review → documentation → build → local-deployment → e2e + design-review + back-tracker-phase-1
+  (parallel) → back-tracker-phase-2 → pull request.
 
 ```
 GitHub Issue / Prompt
@@ -59,7 +59,12 @@ GitHub Issue / Prompt
 ┌─────────────────┐     failures?
 │     Testing     │────────────► Coding (auto-loop, max 5×)
 └────────┬────────┘
-         │ all tests pass
+          │ all tests pass
+          ▼
+┌─────────────────┐     route?
+│     Review      │────────────► Planning or Coding (CRAP-guided loop)
+└────────┬────────┘
+         │ approved
          ▼
 ┌─────────────────┐           ┌─────────────────┐
 │  Documentation  │           │     Build       │────────────► user (approve strategy, first run)
@@ -110,6 +115,7 @@ Run the **`bootstrap-agent`** once. It will:
 - For existing repos: scan the code and extract as much knowledge as possible automatically.
 - Ask only the questions it cannot answer from the code.
 - Write every knowledge document for you.
+- Create a tech-stack-aware CRAP tool config for the review stage.
 - Optionally move the knowledge folder to any path you choose (and update all agent references automatically).
 
 ```
@@ -158,12 +164,13 @@ The orchestrator pauses at approval checkpoints and opens a PR when complete.
 | **Coding** | `.github/agents/coding-agent.agent.md` | Full-stack implementation via language-specific subagents | 5 |
 | **Linting** | `.github/agents/linting-agent.agent.md` | Runs project lint/format tools, auto-fixes issues, delegates unfixable violations to coding agent | 6 |
 | **Tester** | `.github/agents/tester-agent.agent.md` | Unit + integration tests, ≥80% coverage, failure loop with coding | 7 |
-| **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes | 8 (can overlap Build) |
-| **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval | 9 |
-| **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval | 10 |
-| **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end | 11 (parallel) |
-| **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment implements every Design DAC; skipped on non-UI lanes | 11 (parallel, UI lanes only) |
-| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Two-phase final gate — Phase 1 code analysis runs in parallel with E2E; Phase 2 combines all results | 11 Phase 1 (parallel) → 12 Phase 2 |
+| **Review** | `.github/agents/review-agent.agent.md` | GitHub Copilot-style review gate that uses the CRAP tool to route issues back to coding or planning | 8 |
+| **Documentation** | `.github/agents/documentation-agent.agent.md` | OpenAPI spec, changelog, implementation notes, breaking changes | 9 (can overlap Build) |
+| **Build** | `.github/agents/build-agent.agent.md` | Produces cacheable, composable artifacts; first run requires human strategy approval | 10 |
+| **Local Deployment** | `.github/agents/local-deployment-agent.agent.md` | Deploys artifacts locally using emulators; first run requires human strategy approval | 11 |
+| **E2E** | `.github/agents/e2e-agent.agent.md` | Verifies the running deployment satisfies every acceptance criterion end-to-end | 12 (parallel) |
+| **Design Review** | `.github/agents/design-review-agent.agent.md` | Verifies the running deployment implements every Design DAC; skipped on non-UI lanes | 12 (parallel, UI lanes only) |
+| **Back Tracker** | `.github/agents/back-tracker-agent.agent.md` | Two-phase final gate — Phase 1 code analysis runs in parallel with E2E; Phase 2 combines all results | 12 Phase 1 (parallel) → 13 Phase 2 |
 
 ---
 
@@ -239,6 +246,14 @@ Each agent reads specific files from `docs/knowledge/` on every pipeline run. Th
 | `blueprint/domain-model.md` | Write tests that reflect real business rules |
 | `schema/schema.md` | Set up correct fixtures and seed data |
 | `requirements/acceptance-criteria-guide.md` | Derive test cases from acceptance criteria |
+
+### Review Agent
+| File | Why |
+|------|-----|
+| `tech-stack.md` | Select the correct CRAP adapter and review expectations |
+| `blueprint/integration-points.md` | Spot integration and change-surface risk |
+| `security-best-practices.md` | Confirm risky changes still respect the security model |
+| `testing-guidelines.md` | Judge whether the executed tests match the project standard |
 
 ### Documentation Agent
 | File | Why |
@@ -379,6 +394,7 @@ During a pipeline run, each agent writes its output to `.copilot/pipeline/` in t
 ├── coding.json                    # Coding agent implementation report
 ├── linting.json                   # Linting agent report (issues fixed, loops completed)
 ├── testing.json                   # Tester agent report (coverage, failures)
+├── review.json                    # Review agent report (CRAP-guided routing verdict)
 ├── documentation.json             # Documentation agent report
 ├── build.json                     # Build agent report (artifact inventory, sizes)
 ├── local-deployment.json          # Local deployment agent report (running services)
@@ -442,7 +458,7 @@ At pipeline start (Step 0), the orchestrator verifies that both MCP servers are 
 
 Secrets and environment variables for agents are set in the `copilot` GitHub Actions environment in your repository settings. See [Setting environment variables in Copilot's environment](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment#setting-environment-variables-in-copilots-environment).
 
-The `.github/workflows/copilot-setup-steps.yml` pre-installs Node.js, Python, PostgreSQL client tools, Docker, the GitHub CLI, and Playwright (Chromium) for all agent runs.
+The `.github/workflows/copilot-setup-steps.yml` pre-installs Node.js, Python, PostgreSQL client tools, Docker, the GitHub CLI, Playwright (Chromium), and the portable CRAP review tool for all agent runs.
 
 ---
 

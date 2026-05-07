@@ -79,6 +79,7 @@
 | Test runner | — | To be selected per project type |
 | Coverage | — | Minimum 80% on new code |
 | Mocking | — | To be selected per feature |
+| Change risk review | CRAP tool | `.copilot/crap/config.json` selects the adapter from the detected tech stack |
 
 ---
 

@@ -208,7 +208,7 @@ Write output to `.copilot/pipeline/testing.json`:
 5. **Security scenarios are mandatory** for any feature touching user input or authorization.
 6. **Do not modify production code** — ever. Your scope is test files only.
 7. **All tests must pass before the pipeline advances.** A partially-passing suite is a failing suite.
-8. After all tests pass, **update pipeline state**: `Current Stage: documentation`.
+8. After all tests pass, **update pipeline state**: `Current Stage: review`.
 
 ---
 

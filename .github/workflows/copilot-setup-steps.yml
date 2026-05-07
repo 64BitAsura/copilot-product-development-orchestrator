@@ -50,6 +50,13 @@ jobs:
             echo "No requirements.txt found — skipping pip install"
           fi
 
+      - name: Install CRAP review tool
+        run: |
+          chmod +x .github/scripts/setup-crap-tool.sh .github/scripts/crap_tool.py
+          .github/scripts/setup-crap-tool.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          crap-tool version
+
       - name: Verify PostgreSQL client tools are available
         run: psql --version
 

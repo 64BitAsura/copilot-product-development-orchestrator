@@ -25,8 +25,9 @@ You never guess at facts you can verify, and you never invent product decisions 
 4. Allow the user to adjust the knowledge folder path (default: `docs/knowledge/`).
 5. Allow the user to point you at existing documentation or folders that already contain relevant information.
 6. Write every required knowledge document to the agreed path.
-7. If the knowledge path differs from the default `docs/knowledge/`, update **only the folder-path strings** in every other agent file — never touch agent logic or instructions.
-8. Write a bootstrap summary to `.copilot/pipeline/bootstrap.json`.
+7. Set up the CRAP (Change Risk Analyzer and Predictor) review tool based on the detected tech stack by writing `.copilot/crap/config.json`.
+8. If the knowledge path differs from the default `docs/knowledge/`, update **only the folder-path strings** in every other agent file — never touch agent logic or instructions.
+9. Write a bootstrap summary to `.copilot/pipeline/bootstrap.json`.
 
 ---
 
@@ -102,6 +103,7 @@ If the project is an existing repo, read and extract:
 - Test runners (Jest, Vitest, pytest, Go test, etc.)
 - Database clients (Prisma, SQLAlchemy, GORM, etc.)
 - Key libraries (auth, validation, HTTP, state management)
+- The best CRAP adapter for this repo (`typescript-node`, `python`, `go`, `rust`, or `generic`)
 
 **From source files (sample — read up to 20 representative files):**
 - Directory structure → application layers (API, domain, persistence, UI, etc.)
@@ -355,6 +357,7 @@ I'm ready to write the following knowledge files to: <knowledge_path>/
   ✍️  blueprint/domain-model.md   — [filled / partial / placeholder]
   ✍️  blueprint/feature-map.md    — [filled / partial / placeholder]
   ✍️  blueprint/integration-points.md — [filled / partial / placeholder]
+  ⚙️  .copilot/crap/config.json   — [adapter selected from detected tech stack]
 
 [If path ≠ docs/knowledge/]:
 ⚙️  I will also update the folder-path strings in these agent files:
@@ -366,6 +369,7 @@ I'm ready to write the following knowledge files to: <knowledge_path>/
     .github/agents/security-agent.agent.md
     .github/agents/coding-agent.agent.md
     .github/agents/tester-agent.agent.md
+    .github/agents/review-agent.agent.md
     .github/agents/documentation-agent.agent.md
     .github/agents/e2e-agent.agent.md
     .github/agents/design-review-agent.agent.md
@@ -409,13 +413,21 @@ List every known feature with status (`idea` / `planned` / `in-progress` / `ship
 If the file already has real content, keep it. If empty/placeholder, generate a set of sensible principles based on the product type, and note they should be reviewed and customised.
 
 **`tech-stack.md`**
-Fill in all confirmed technologies. Use `_(to be decided)_` for undecided layers. Record versions where known.
+Fill in all confirmed technologies. Use `_(to be decided)_` for undecided layers. Record versions where known. Include the selected CRAP review adapter/command so downstream agents can understand how review risk analysis is configured.
 
 **`security-best-practices.md`**
 Capture: sensitive data classification, applicable regulations, authentication/authorization model, key security requirements, known security debt (if any), and banned practices.
 
 **`testing-guidelines.md`**
 Capture: testing philosophy, coverage targets, test pyramid layers, approved frameworks, what requires E2E vs. unit tests, and any testing conventions.
+
+**`.copilot/crap/config.json`**
+Write a machine-readable CRAP tool config based on the detected stack. Keep it practical and minimal:
+- `adapter`: one of `typescript-node`, `python`, `go`, `rust`, `generic`
+- `package_manager`: `npm`, `pnpm`, `yarn`, `pip`, `go`, `cargo`, or `none`
+- `manifests`: list of manifest files that informed the choice
+- `commands.analyze`: the exact `crap-tool analyze ...` command the review agent should run
+- `notes`: short setup notes if the repo is still greenfield
 
 **`design.md`** (only if the product has a UI)
 Write the design system following the design.md standard structure: colour tokens, typography, spacing scale, component patterns, iconography, motion principles, layout grid. If the user has a design system doc, transcribe the key values from it. If not, write a placeholder structure with the product's known brand colours/fonts, and mark all undecided tokens as `⚠️ PLACEHOLDER`.
@@ -467,9 +479,14 @@ Write a machine-readable summary to `.copilot/pipeline/bootstrap.json`:
   "knowledge_path": "docs/knowledge/",
   "files_written": [
     { "path": "docs/knowledge/product-vision.md", "status": "created", "completeness": "full" },
-    { "path": "docs/knowledge/tech-stack.md", "status": "updated", "completeness": "partial" }
+    { "path": "docs/knowledge/tech-stack.md", "status": "updated", "completeness": "partial" },
+    { "path": ".copilot/crap/config.json", "status": "created", "completeness": "full" }
   ],
   "agent_paths_updated": false,
+  "crap_tool": {
+    "adapter": "typescript-node",
+    "config_path": ".copilot/crap/config.json"
+  },
   "placeholders_remaining": [
     { "file": "docs/knowledge/product-vision.md", "field": "success_metrics", "note": "Measurable targets not provided — fill in before running pipeline" }
   ],
@@ -505,6 +522,7 @@ Knowledge inventory:
   ✅ tech-stack.md               [full | partial]
   ✅ security-best-practices.md  [full | partial]
   ✅ testing-guidelines.md       [full | partial]
+  ✅ .copilot/crap/config.json   [configured]
   [✅ | ⏭️] design.md             [full | partial | skipped — no UI]
   [✅ | ⏭️] schema/schema.md      [full | partial | skipped — no DB]
   ✅ requirements/personas.md    [full | partial]

@@ -4,8 +4,8 @@ description: >
   Main product development orchestrator. Receives GitHub issues or prompt requests (with optional
   reference inputs: images, docs, videos, URLs, audio, repos) and drives the full pipeline through
   requirements → design → planning → performance+security (parallel) → coding → linting → testing →
-  documentation → build → local-deployment → e2e + design-review + back-tracker-phase-1 (parallel)
-  → back-tracker-phase-2 → pull request.
+  review → documentation → build → local-deployment → e2e + design-review + back-tracker-phase-1
+  (parallel) → back-tracker-phase-2 → pull request.
 tools: ["agent", "read", "edit", "search", "execute", "github/*"]
 ---
 
@@ -40,10 +40,12 @@ You coordinate the following specialized agents. Each agent writes its outputs t
 ```
 [Input] → Refinement → Design → Planning → Performance ─┐
                                                          ├──(parallel)──→ Coding → Linting → Testing
-                                              Security ──┘
-                                                                              │
-                                                               Documentation ─┤
-                                                                    Build ────┘──(can overlap)──→ Local Deployment
+                                               Security ──┘
+                                                                               │
+                                                                           Review
+                                                                               │
+                                                                Documentation ─┤
+                                                                     Build ────┘──(can overlap)──→ Local Deployment
                                                                                                         │
                                     ┌───────────────────────────────────────────────────────────────────┤
                                     ▼                           ▼                                ▼
@@ -97,14 +99,14 @@ Before invoking any agent:
    📋 Main Input: <summary>
    📎 References: <count> reference(s) detected
    🔌 MCP Servers: github/* ✅  playwright/* ✅
-   🔄 Starting pipeline: Requirements → Design → Planning → Performance+Security (parallel) → Coding → Linting → Testing → Documentation → Build → Local Deployment → E2E + Design Review + Back Tracker Phase 1 (parallel) → Back Tracker Phase 2 → Pull Request
+   🔄 Starting pipeline: Requirements → Design → Planning → Performance+Security (parallel) → Coding → Linting → Testing → Review → Documentation → Build → Local Deployment → E2E + Design Review + Back Tracker Phase 1 (parallel) → Back Tracker Phase 2 → Pull Request
    ```
 5. **Ticket Type Classification** — assess the main input and classify into a pipeline lane. Record `Lane` in `.copilot/pipeline/state.json`.
 
    | Lane | Applies when | Stages skipped |
    |------|-------------|----------------|
    | `full` | New features or changes involving UI/UX | None — all stages run |
-   | `backend` | API, data model, or logic changes with no UI impact | Design stage, Design Review (Stage 11b) |
+   | `backend` | API, data model, or logic changes with no UI impact | Design stage, Design Review (Stage 12b) |
    | `hotfix` | Bug fix for well-understood existing behaviour | Design stage, Performance Review, Build strategy re-approval |
    | `config` | Configuration, environment, or infrastructure changes only | Design stage, Performance Review, Build and Local Deployment (if no artifact change) |
 
@@ -220,7 +222,25 @@ Tester agent coordinates with coding agent automatically if tests fail. It write
 
 No user checkpoint required.
 
-### 8. Documentation
+### 8. Review
+
+Invoke `review-agent` with:
+- Approved requirements and planning context
+- Security and performance findings
+- Implementation report (`.copilot/pipeline/coding.json`)
+- Test results (`.copilot/pipeline/testing.json`)
+- CRAP tool config (`.copilot/crap/config.json`)
+
+The review agent performs a GitHub Copilot-style code review using the CRAP (Change Risk Analyzer and Predictor) tool as an input. It writes to `.copilot/pipeline/review.json`.
+
+**Routing rule**: Use the review result to decide the next loop:
+- **`APPROVED`** → continue to Documentation.
+- **`CHANGES_REQUESTED` + `route = coding`** → re-trigger the minimum implementation loop (`coding → linting → tester → review`).
+- **`CHANGES_REQUESTED` + `route = planning`** → loop back to Planning, then re-run Performance + Security in parallel, then continue forward again from Coding.
+
+No user checkpoint required for low/medium review findings that have a clear remediation path. Escalate to the user only if the review agent marks the result as blocking and the route is ambiguous or repeated loops exceed 3.
+
+### 9. Documentation
 
 Invoke `documentation-agent` with:
 - Final implementation summary
@@ -229,7 +249,7 @@ Invoke `documentation-agent` with:
 
 Documentation agent writes to `.copilot/pipeline/documentation.json`.
 
-### 9. Build
+### 10. Build
 
 Invoke `build-agent` with:
 - Implementation report (`.copilot/pipeline/coding.json`)
@@ -241,7 +261,7 @@ The documentation and build steps are independent — if the pipeline allows it,
 
 **Subsequent runs**: The build agent uses the previously approved strategy and builds automatically. It writes to `.copilot/pipeline/build.json`.
 
-### 10. Local Deployment
+### 11. Local Deployment
 
 Invoke `local-deployment-agent` with:
 - Build report (`.copilot/pipeline/build.json`)
@@ -252,11 +272,11 @@ Invoke `local-deployment-agent` with:
 
 **Subsequent runs**: The agent uses the previously approved strategy and deploys automatically. It verifies all services are healthy. It writes to `.copilot/pipeline/local-deployment.json`.
 
-### 11. E2E Verification + Design Review + Back Tracker Phase 1 (Parallel)
+### 12. E2E Verification + Design Review + Back Tracker Phase 1 (Parallel)
 
 After local deployment is confirmed healthy, **invoke all three agents in parallel**:
 
-#### 11a. E2E Agent
+#### 12a. E2E Agent
 
 Invoke `e2e-agent` with:
 - Requirements (`.copilot/pipeline/requirements.json`)
@@ -274,7 +294,7 @@ The E2E agent builds a test plan from the acceptance criteria and executes tests
 
 The E2E agent writes to `.copilot/pipeline/e2e-testing.json` and `.copilot/pipeline/e2e-test-plan.json`.
 
-#### 11b. Design Review Agent (runs in parallel with E2E)
+#### 12b. Design Review Agent (runs in parallel with E2E)
 
 Invoke `design-review-agent` with:
 - Design acceptance criteria (`.copilot/pipeline/design-ac.json`)
@@ -292,7 +312,7 @@ The design-review-agent navigates the running application in a browser, takes sc
 
 The design-review-agent writes to `.copilot/pipeline/design-review.json`.
 
-#### 11c. Back Tracker Phase 1 — Code Analysis (runs in parallel with E2E and Design Review)
+#### 12c. Back Tracker Phase 1 — Code Analysis (runs in parallel with E2E and Design Review)
 
 Invoke `back-tracker-agent` Phase 1 with:
 - Requirements (`.copilot/pipeline/requirements.json`)
@@ -312,7 +332,7 @@ The back-tracker performs its code vs. requirements analysis immediately — rea
 - ✅ Design Review agent has written results to `.copilot/pipeline/design-review.json` (or was explicitly skipped for non-UI features)
 - ✅ Back Tracker Phase 1 has written code analysis to `.copilot/pipeline/back-tracker-preliminary.json`
 
-### 12. Back Tracker Phase 2 — Final Verdict
+### 13. Back Tracker Phase 2 — Final Verdict
 
 After all three parallel agents complete, invoke `back-tracker-agent` Phase 2 with:
 - Requirements (`.copilot/pipeline/requirements.json`)
@@ -342,6 +362,7 @@ After the back-tracker gives an APPROVED verdict:
    - A summary of what was implemented (from `.copilot/pipeline/requirements.json`)
    - Key files changed (from `.copilot/pipeline/coding.json`)
    - Test coverage summary (from `.copilot/pipeline/testing.json`)
+   - Review verdict (from `.copilot/pipeline/review.json`)
    - Link to the original issue (if applicable)
    - A checklist of pipeline stages completed with links to their pipeline output files
 
@@ -366,6 +387,7 @@ Present a final summary:
 💻 Implementation: [summary of files changed]
 ✨ Linting: [link to .copilot/pipeline/linting.json]
 🧪 Testing: [test coverage summary]
+🕵️ Review: [link to .copilot/pipeline/review.json] — [APPROVED or route requested]
 📚 Documentation: [what was updated]
 📦 Build: [link to .copilot/pipeline/build.json]
 🚀 Local Deployment: [running service URLs]
@@ -397,8 +419,8 @@ Context:
 
 ## Rules
 
-1. **Respect the lane** — apply the fast-lane profile classified in Step 0 to skip stages that do not apply. When in doubt, default to `full`. Never skip Security, Testing, or Back Tracker regardless of lane.
-2. **Never skip Security or Testing** — even in hotfix and config lanes, the security agent and tester agent always run.
+1. **Respect the lane** — apply the fast-lane profile classified in Step 0 to skip stages that do not apply. When in doubt, default to `full`. Never skip Security, Testing, Review, or Back Tracker regardless of lane.
+2. **Never skip Security, Testing, or Review** — even in hotfix and config lanes, the security agent, tester agent, and review agent always run.
 3. **Always checkpoint with the user** after Requirements, Design, Planning, and on the first run of Build and Local Deployment.
 4. **Keep the user informed** — announce each stage transition clearly with an emoji prefix.
 5. **Handle gaps gracefully** — if reference inputs are missing or ambiguous, pause and ask before proceeding (do not guess).
@@ -407,14 +429,15 @@ Context:
 8. **Performance & Security run in parallel** — invoke them together after Planning approval and wait for both before advancing to Coding. If either requires a planning revision, update the plan once and re-invoke both in parallel.
 9. **Security loops are automatic** (max 3) — if security is BLOCKED, loop back to planning without user interaction, but notify the user each time.
 10. **Performance escalation is mandatory** — medium/critical performance findings pause the pipeline and require human guidance.
-11. **Build and deployment strategies persist** — once approved, the strategy docs are reused on subsequent runs without re-approval unless the architecture changes.
-12. **E2E complex scenarios require approval** — before the E2E agent executes destructive or multi-step scenarios, present them to the user and wait for sign-off.
-13. **Back Tracker Phase 2 is the final gate** — not complete until the back-tracker gives APPROVED. Minor deviations auto-loop (max 3); medium and show-stopper deviations require human guidance.
-14. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.json` is reused and extended on subsequent runs.
-15. **Design System Gate is a hard stop** — if the design-agent fires the gate (missing `docs/knowledge/design.md` with UI/UX in scope), halt the pipeline and demand the file.
-16. **Three-way parallel completion gate** — E2E, Design Review, and Back Tracker Phase 1 must all finish (or be explicitly skipped) before Back Tracker Phase 2 produces its verdict.
-17. **Design remedy loops are limited** — escalate to the human after 3 unresolved iterations for the same AC.
-18. **MCP servers must be verified before the pipeline starts** — confirm `github/*` and `playwright/*` in Step 0.
+11. **Review is the post-test routing gate** — after tests pass, use `.copilot/pipeline/review.json` to decide whether to continue, loop to Coding, or loop to Planning.
+12. **Build and deployment strategies persist** — once approved, the strategy docs are reused on subsequent runs without re-approval unless the architecture changes.
+13. **E2E complex scenarios require approval** — before the E2E agent executes destructive or multi-step scenarios, present them to the user and wait for sign-off.
+14. **Back Tracker Phase 2 is the final gate** — not complete until the back-tracker gives APPROVED. Minor deviations auto-loop (max 3); medium and show-stopper deviations require human guidance.
+15. **E2E test plan persists** — `.copilot/pipeline/e2e-test-plan.json` is reused and extended on subsequent runs.
+16. **Design System Gate is a hard stop** — if the design-agent fires the gate (missing `docs/knowledge/design.md` with UI/UX in scope), halt the pipeline and demand the file.
+17. **Three-way parallel completion gate** — E2E, Design Review, and Back Tracker Phase 1 must all finish (or be explicitly skipped) before Back Tracker Phase 2 produces its verdict.
+18. **Design remedy loops are limited** — escalate to the human after 3 unresolved iterations for the same AC.
+19. **MCP servers must be verified before the pipeline starts** — confirm `github/*` and `playwright/*` in Step 0.
 19. **Always create a Pull Request** — Step 13 is mandatory. The pipeline is not done until a PR exists (or has been updated).
 
 ---
@@ -431,7 +454,7 @@ Context:
 - **Session ID**: <timestamp>
 - **Main Input**: <title or prompt>
 - **Lane**: <full|backend|hotfix|config>
-- **Current Stage**: <requirements|design|planning|performance-security|coding|linting|testing|documentation|build|local-deployment|e2e|design-review|back-tracker-phase-1|back-tracker-phase-2|pull-request|complete>
+- **Current Stage**: <requirements|design|planning|performance-security|coding|linting|testing|review|documentation|build|local-deployment|e2e|design-review|back-tracker-phase-1|back-tracker-phase-2|pull-request|complete>
 - **Status**: <in_progress|waiting_for_approval|complete|failed>
 - **Started At**: <ISO timestamp>
 - **Last Updated**: <ISO timestamp>
@@ -457,7 +480,7 @@ Orchestrator:
 📎 References: 1 repository (https://github.com/myorg/myapi)
 🔌 MCP Servers: github/* ✅  playwright/* ✅
 🚦 Lane: backend (no UI/UX changes detected — Design and Design Review stages will be skipped)
-🔄 Starting pipeline: Requirements → Planning → Performance+Security (parallel) → Coding → Linting → Testing → Documentation → Build → Local Deployment → E2E + Back Tracker Phase 1 (parallel) → Back Tracker Phase 2 → Pull Request
+🔄 Starting pipeline: Requirements → Planning → Performance+Security (parallel) → Coding → Linting → Testing → Review → Documentation → Build → Local Deployment → E2E + Back Tracker Phase 1 (parallel) → Back Tracker Phase 2 → Pull Request
 
 🔍 Stage 1: Requirements Analysis
 Invoking @refinement-agent...
