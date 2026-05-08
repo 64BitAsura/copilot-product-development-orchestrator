@@ -19,7 +19,8 @@ This directory contains the inter-agent handoff files for the product developmen
 | `security.json` | Security Agent | Orchestrator, Coding | Security findings, verdict, conditions for coding |
 | `coding.json` | Coding Agent | Linting, Tester, Documentation, Build, E2E, Back Tracker | Implementation report — files changed, API changes, DB changes |
 | `linting.json` | Linting Agent | Orchestrator | Linting report — issues fixed, loops completed |
-| `testing.json` | Tester Agent | Documentation, Back Tracker | Test results, coverage, breaking changes |
+| `testing.json` | Tester Agent | Review, Documentation, Back Tracker | Test results, coverage, breaking changes |
+| `review.json` | Review Agent | Orchestrator | Copilot-style review verdict using the CRAP tool |
 | `documentation.json` | Documentation Agent | Orchestrator | Documentation changes, OpenAPI updates, changelog entries |
 | `build.json` | Build Agent | Local Deployment, Orchestrator | Artifact inventory, sizes, verification results |
 | `local-deployment.json` | Local Deployment Agent | E2E, Design Review, Back Tracker | Running service URLs, health check results |

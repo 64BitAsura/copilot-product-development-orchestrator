@@ -19,7 +19,8 @@
 #   - git
 #
 # WHAT GETS INSTALLED
-#   .github/agents/                          — all 16 custom agent definitions
+#   .github/agents/                          — all 17 custom agent definitions
+#   .github/scripts/                         — shared helper scripts (including CRAP tool setup)
 #   .github/workflows/copilot-setup-steps.yml — Copilot environment setup
 #   docs/knowledge/                          — knowledge harness skeleton (--include-docs only)
 #
@@ -65,10 +66,12 @@ git clone --depth=1 --quiet "$ORCHESTRATOR_URL" "$WORK_DIR/src"
 
 SRC="$WORK_DIR/src"
 AGENTS_SRC="$SRC/.github/agents"
+SCRIPTS_SRC="$SRC/.github/scripts"
 SETUP_SRC="$SRC/.github/workflows/copilot-setup-steps.yml"
 DOCS_SRC="$SRC/docs/knowledge"
 
 [ -d "$AGENTS_SRC" ] || err "Agent folder not found in cloned repo: $AGENTS_SRC"
+[ -d "$SCRIPTS_SRC" ] || err "Scripts folder not found in cloned repo: $SCRIPTS_SRC"
 [ -f "$SETUP_SRC"  ] || err "Setup workflow not found in cloned repo: $SETUP_SRC"
 if $INCLUDE_DOCS; then
   [ -d "$DOCS_SRC" ] || err "docs/knowledge not found in cloned repo: $DOCS_SRC"
@@ -81,6 +84,10 @@ DEST_DIR="$(pwd)"
 info "Installing agent definitions into ${DEST_DIR}/.github/agents/ …"
 mkdir -p "$DEST_DIR/.github/agents"
 cp "$AGENTS_SRC"/*.agent.md "$DEST_DIR/.github/agents/"
+
+info "Installing helper scripts into ${DEST_DIR}/.github/scripts/ …"
+mkdir -p "$DEST_DIR/.github/scripts"
+cp "$SCRIPTS_SRC"/* "$DEST_DIR/.github/scripts/"
 
 info "Installing copilot-setup-steps.yml into ${DEST_DIR}/.github/workflows/ …"
 mkdir -p "$DEST_DIR/.github/workflows"
